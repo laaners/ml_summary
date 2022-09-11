@@ -1,0 +1,214 @@
+% !TeX root = ../main.tex
+
+\section{Linear Regression}
+    For now we focus on parametric methods and linear models. Linear models have very good properties:
+    \begin{itemize}
+        \item Easy optimization, analytical solution
+        \item Core concepts of ML based on linear models
+        \item A linear model can \textbf{represent any function}, provided proper transformation (linear in the parameters), \textbf{but the model rarely happens to have linear characteristics}
+        \item \textbf{Can capture non-linear characteristics, basis functions}
+        \item Simple methods can outperform more complex ones if \textbf{data are noisy}, \textbf{more complex models overfits more}
+    \end{itemize}
+    Linear function in the parameters $w$:
+    $$y(x,w)=w_0+\sum_{j=1}^{D-1}w_jx_j=w^Tx$$
+    $y$ is the model, $w$ parameters of the model (Mx1), $x=(1,x_1,\cdots,x_{D-1})^T$ input (Dx1).
+
+    \textbf{Loss function}: to quantify what it means to do well or poorly on task. The \textbf{average or expected loss} is given by:
+    $$\mathbb{E}[L]=\int\int L(t,y(x))p(x,t)dxdt$$
+    This is the ideal loss function, with infinite samples that cannot be computed since I don't know the expected $p(x,t)$ (probability of generating the point). The loss error function $L(t,y(x))$ is usually chose as squared loss function $(t-y(x))^2$.
+
+    \textbf{Basis functions}: to consider non-linear functions
+    $$y(x,w)=w_0+\sum_{j=1}^{M-1}w_j\phi_j(x)=w^T\phi(x)$$
+    Where $\phi(x)=(1,\phi_1(x),\cdots,\phi_{M-1}(x))^T$ (Mx1). Here the features are functions that can be arbitrarily non-linear or even not continuous (linear model in parameters and not in input).
+    \begin{itemize}
+        \item M=\#features
+        \item N=\#inputs in the training set
+        \item
+            $
+            \Phi=(\phi(x_1),\phi(x_2),\cdots,\phi(x_N))^T=
+            \begin{pmatrix}
+                1 & \phi_1(x_1) & \phi_2(x_1) & \cdots & \phi_{M-1}(x_1) \\
+                & & \vdots & & \\
+                & & \phi_(x_N) & &
+            \end{pmatrix}
+            $ (NxM)
+    \end{itemize}
+    \textbf{Approaches (parametric)}:
+    \begin{itemize}
+        \item \textbf{Direct approach}, find regression function directly from training data:
+        \begin{itemize}
+            \item Minimizing least squares
+            \item Gradient optimization, stochastic gradient descent
+        \end{itemize}
+        \item \textbf{Discriminative approach}, model the conditional density $p(t|x)$
+        \begin{itemize}
+            \item Maximum likelihood (log-likelihood)
+        \end{itemize}
+        \item \textbf{Generative approach}, model the joint density $p(x,t)=p(x|t)p(t)$
+        \begin{itemize}
+            \item Bayesian linear regression 
+        \end{itemize}
+    \end{itemize}
+
+\subsection{Direct approach}
+\subsubsection{Minimizing least squares}
+    Consider the following error/loss function, which is half the \textbf{residual sum of squares RSS} a.k.a. SSE
+    $$L(w)=\frac{1}{2}\sum_{n=1}^N(y(x_n,w)-t_n)^2=\frac{1}{2}RSS$$
+    Can also rewritten as L2-norm of the vector of \textbf{residual errors} $\epsilon=y(x_n,w)-t_n$:
+    $$RSS(w)=||\epsilon||_2^2=\sum_{i=1}^N\epsilon_i^2$$
+    \textbf{Ordinary least squares}: rewrite loss function in matrix form with $\Phi=(\phi(x_1),\cdots,\phi(x_N))^T$ and $t=(t_1,\cdots,t_N)^T$:
+    $$L(w)=\frac{1}{2}RSS(w)=\frac{1}{2}(\underset{Nx1}{\underbrace{t}}-\underset{NxM}{\underbrace{\Phi}}\,\underset{Mx1}{\underbrace{w}})^T(t-\Phi w)$$
+    To minimize it, compute first derivative (for value, put =0 and solve for $w$) and second (Hessian see if positive or negative)
+    $$
+    \begin{cases}
+        \frac{\partial L(w)}{\partial w}=-\Phi^T(t-\Phi w)\\
+        \vspace{0em}\\
+        \frac{\partial^2L(w)}{\partial w \partial w^T}=\Phi^T\Phi
+    \end{cases}
+    $$
+    Assuming $\Phi^T\Phi$ \textbf{nonsingular}:
+    $$\hat{w}_{OLS}=(\Phi^T\Phi)^{-1}\Phi^Tt$$
+    With \textbf{cubic complexity}.\\
+    $\Phi^T\Phi$ can be singular (one eigenvalue is zero) when:
+    \begin{itemize}
+        \item Some features linearly dependent (e.g. x and 2x), so infinite solutions and \textbf{infinite variance}
+        \item Rank of the matrix not full, \#samples < \#features, not invertible
+    \end{itemize}
+    Cases in which we can or should not use least squares:
+    \begin{itemize}
+        \item \textbf{YES with small number of paramters}, the most computationally complex part of the method is the matrix inversion, with few parameters we invert a small matrix
+        \item \textbf{YES/NO with huge number of samples}, even though matrix inversion is linear in \#samples so does not depend in \#samples, a matrix multiplication is required, which is linear in \#samples, so for extremely large dataset this operation might be unfeasible
+        \item \textbf{NO with different loss function}
+    \end{itemize}
+\subsubsection{Gradient optimization}
+    Find minimum through \textbf{stochastic gradient descent}: if the loss function can be expressed as \textbf{sum over samples}
+    $$L(x)=\frac{1}{2}(t-\Phi w)^T(t-\Phi w)=\frac{1}{2}RSS=\frac{1}{2}\sum_{n=1}^N(w^T\phi(x)-t_n)^2=\sum_nL(x_n)$$
+    We compute the gradient of $L(x_n)$ w.r.t. $w$:
+    $$w^{(k+1)}=w^{(k)}-\alpha^{(k)}\nabla L(x_n)$$
+    $$w^{(k+1)}=w^{(k)}-\alpha^{(k)}\left(w^{(k)^T}\phi(x_n)-t_n\right)\phi(x_n)$$
+    Where $k$ is the iteration and $\alpha$ is a \textbf{learning rate}, the latter for \textbf{convergence} must satisfy (Robbins-Monro):
+    $$\sum_{k=0}^\infty \alpha^{(k)}=+\infty$$
+    $$\sum_{k=0}^\infty \alpha^{(k)^2}<+\infty$$
+    If batch update:
+    $$w^{(k+1)}=w^{(k)}-\frac{\alpha^{(k)}}{K}\sum_{n=1}^K(w^{(k)^T}\phi(x_n)-t_n)\phi(x_n)$$
+    \textbf{Geometric interpretation}:
+    Let's define the hat matrix:
+    \begin{itemize}
+        \item $\hat{t}_i=\hat{w}^T\phi(x)$ (1xM·Mx1)
+        \item 
+        $
+            \hat{t}=
+            \begin{pmatrix}
+                \hat{w}^T\phi(x_1)\\
+                \hat{w}^T\phi(x_2)\\
+                \vdots\\
+                \hat{w}^T\phi(x_n)\\
+            \end{pmatrix}
+            =\hat{w}^T\Phi^T=\Phi\hat{w}
+        $ (NxM·Mx1=Nx1)
+    \end{itemize}
+    Since $\hat{w}_{OLS}=(\Phi^T\Phi)^{-1}\Phi^Tt$:
+    $$\hat{t}=\Phi\hat{w}_{OLS}=\underset{Hat\,\,matrix\,\,H}{\underbrace{\Phi(\Phi^T\Phi)^{-1}\Phi^T}}\,\,t=Ht$$
+    Optimal parameters  $\hat{w}_{OLS}$, this is the function that projects the vector on the space described by the features. My predictions $\hat{t}$ are a linear combination of true values seen.
+\subsubsection{Performance indexes}
+    \begin{itemize}
+        \item \textbf{Residual sum of squares (RSS), sum of squared errors (SSE)}, how much of the prediction differs from the true value
+        $$RSS(w)=\sum_n(\hat{t}_n-t_n)^2$$
+        \item \textbf{Root mean squared error (RMSE)}
+        $$RMSE=\sqrt{\frac{RSS(w)}{N}}$$
+        Without root (MSE) it tells approximately how much error we get on a predicted data over the training set (i.e., a normalized version of the RSS).
+        \item \textbf{Coefficient of determination (R-squared)}, if close to 1 good, if close to 0 model is not explaining enough the data (poor model)
+        $$R^2=1-\frac{RSS(w)}{\sum_n(\overline{t}-t_n)^2}$$
+        It represents in percentage how much variance has been explained by the model
+        (how much better we are doing w.r.t. just using the mean of the target $\bar{t} = \frac{\sum_n t_n}{N}$).
+        \item \textbf{Degrees of freedom}, somehow keep large, we need way more samples than parameters otherwise overfitting
+        $$dfe=N-M$$
+        \item \textbf{Adjusted coefficient of determination}
+        $$R^2_{adj}=1-(1-R^2)\frac{N-1}{dfe}$$
+        \item \textbf{F-statistics}, it means that at least one of the considered variables are meaningful to model the considered relationship, \textbf{p-value}, if low (< 5\%) the coefficients meaningful otherwise not.\\
+        Under the assumption that the observations $t_n$ are i.i.d. and satisfies $t_n = w_0 + \sum_j w_j x_{nj} + \epsilon$, where $\epsilon$ is a Gaussian noise with zero mean and variance $\sigma^2$ (i.e., the data are generated by a linear model with noise), the computed coefficients $\hat{w}_j$ are distributed as follows:
+        \begin{equation*}
+            \frac{\hat{w}_j - w_j}{\hat{\sigma} \sqrt{v_j}} \sim t_{N - M -1}
+        \end{equation*}
+        where $w_j$ is the true parameter, $\hat{\sigma}$ is the unbiased estimated for the target variance, i.e., $\hat{\sigma}^2 = \frac{\sum_n (t_n - \hat{t}_n)^2}{N - M - 1}$, $v_j$ is the $j$-th diagonal element of the matrix $(X^T X)^{-1}$ and $t_{N - M}$ is the t-student distribution with $N - M - 1$ degrees of freedom.\\
+        This allow us to formulate some statistical tests:\\
+        \textbf{Single coefficients statistical test}:
+        $$H_0: w_j = 0 \qquad \text{ vs. } \qquad H_1: w_j \neq 0$$
+        \begin{equation*}
+        t_{stat} = \frac{\hat{w}_j - w_j}{\hat{\sigma} \sqrt{v_j}} \sim t_{N - M - 1}
+        \end{equation*}
+        where $t_{N - M - 1}$ is the T-Student distribution with $N-M-1$ degrees of freedom.\\
+        We do not reject the null hypothesis if we have
+        $$\left|\frac{\hat{w}_j-w_j}{\hat{\sigma}\sqrt{v_j}}\right|\leq z_{1-\alpha/2}$$
+        From which we find the maximum value for which we would not reject the null hypothesis.\\
+        $z_{1-\alpha/2}$ is the quantile, usually $\alpha=5\%$ so that $z_{97.5\%}=1.96$\\
+        \textbf{Overall significance of the model: F-statistic}
+        It considers the following hypothesis test:
+        $$H_0: w_1 = \dots = w_M = 0 \text{ vs. }  H_1: \exists w_j \neq 0$$
+        The F-statistic can be computed and is distributed as follows:
+        $$ F = \frac{dfe}{M - 1}\frac{\sum_n (\hat{t}_n-t_n)- RSS}{RSS} \sim F_{M-1, N-M} $$
+        where $F_{M-1, N-M}$ is the Fisher-Snedecor distribution with parameters $M-1$ and $N-M$.
+    \end{itemize}
+
+\subsection{Discriminative approach: Maximum likelihood}
+    Till now no probabilistic approach, direct approach, we find a hyperplane in the feature space that minimized least square.\\
+    We introduce the concept of \textbf{distribution}, what is the linear model that maximizes the prob that the data I'm observing are generated by w. We introduce uncertainty, noise and model the output as deterministic function of the input and a random noise:
+    $$t=f(x)+\epsilon$$
+    We can approximate the noise $\epsilon$ as a Gaussian noise with $\mathcal{N}(0,\sigma^2)$. Given $N$ samples with inputs $X=\{x_1,\cdots,x_N\}$ and outputs $t=(t_1,\cdots,t_N)^T$ the likelihood function is:
+    $$p(t|X,w,\sigma^2)=\prod_{n=1}^N\mathcal{N}(t_n|\underset{y(x_n,w)}{\underbrace{w^T\phi(x_n)}},\sigma^2)$$
+    By assumption, each point has a likelihood as Gaussian. We want to \textbf{maximize} this likelihood. Assuming the samples to be \textbf{independent and identically distributed i.i.d.}, we consider the log-likelihood:
+    $$l(w)=\ln p(t|X,w,\sigma^2)=\sum_{n=1}^N\ln p(t_n|x_n,w,\sigma^2)=-\frac{N}{2}\ln(2\pi\sigma^2)-\frac{1}{2\sigma^2}RSS(w)$$
+    By computing the gradient and solving:
+    $$\nabla l(w)=0$$
+    $$w_{ML}=\hat{w}_{OLS}=(\Phi^T\Phi)^{-1}\Phi^Tt$$
+    Same solution as minimizing least squares.
+    
+    \textbf{Gauss-Markov theorem}: the least squares estimate of $w$ has the \textbf{smallest variance} among all linear \textbf{unbiased} estimates $\Rightarrow$ least squares has lowest MSE of all linear estimator with no bias, but there may exist a biased estimator with smaller MSE.
+
+\subsection{Generative approach: Bayesian linear regression}
+    \begin{itemize}
+        \item We formulate our knowledge about the world in probabilistic way:
+        \begin{itemize}
+            \item Define the \textbf{model} that expresses our knowledge \textbf{qualitetively}
+            \item Our model will have some \textbf{unknown parameters}
+            \item We capture our assumptions about unknown parameters by specifying the \textbf{prior distribution} over those paramters before seeing the data
+        \end{itemize}
+        \item We \textbf{observe the data}
+        \item We comptue the \textbf{posterior probability distribution} for the parameters, given observed data
+        \item We use posterios to:
+        \begin{itemize}
+            \item \textbf{Make predictions} by averaging over the posterior distribution
+            \item \textbf{Examine/account for uncertainty} in the parameter values
+            \item \textbf{Make decisions} by minimizing expected posterior loss
+        \end{itemize}
+    \end{itemize}
+    In direct approach we produce a model, here we produce a distribution of a model, we maximize the posterior, found through Bayes' Rule:
+    $$P(parameters|data)=\frac{
+        P(data|parameters)P(parameters)
+    }{P(data)}$$
+    $$P(w|D)=\frac{P(D|w)P(w)}{P(D)}$$
+    \begin{itemize}
+        \item $P(w|D)$ is the posterior probability of parameters $w$ given training data $D$
+        \item $P(D|w)$ is the probability (\textbf{likelihood}) of observing $D$ given $w$
+        \item $P(w)$ is the prior probability over the parameters
+        \item $P(D)$ is the marginal likelihood (\textbf{normalizing constant})
+    \end{itemize}
+    We want the most probable value of $w$ given the data: maximum a posteriori MAP, it is the mode of the posterior.\\
+    Bayesian linear regression is another approach to \textbf{avoid overfitting}. Prior knowledge: Gaussian centered in some part of the space. Assuming Gaussian likelihood with mean $\Phi w$ and covariance matrix $\sigma^2I_N$ (which means our samples are i.i.d.), the \textbf{conjugate prior} is Gaussian too with mean $w_0$ and covariance matrix $S_0$. Given the data $D$, the \textbf{posterior} is still Gaussian of mean $w_N$ and covariance matrix $S_N$:
+    \begin{itemize}
+        \item $P(D|w)=\mathcal{N}(t|\Phi w,\sigma^2I_N)$, likelihood
+        \item $P(w)=\mathcal{N}(w|w_0,S_0)$, prior
+        \item $P(w|D)=\mathcal{N}(w|w_N,S_N)$, posterior
+    \end{itemize}
+    Where:
+    $$\mathcal{N}(\mu,\sigma^2)=\frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}$$
+    $$w_N = S_N(S_0^{-1} w_0 + \frac{\Phi ^T t}{\sigma ^2})$$
+    $$S_N ^{-1} = S_0^{-1} + \frac{\Phi ^T \Phi}{\sigma ^2 }$$
+    \begin{itemize}
+        \item The Bayesian linear regression technique as explained allows the use of a prior distribution, which reduces the hypothesis space hence the probability of overfitting
+        \item The mode coincides with the mean
+        \item $w_N$ is the MAP estimator (maximum a posteriore)
+        \item If prior has infinite variance, $w_N$ reduces to the maximum likelihood estimator (MLE)
+        \item If we assume that $w_0 = 0$ and $S_0 = \lambda^2I_N$ then we get exactly the ridge regression technique formula, where $\lambda = \frac{\sigma ^2}{\lambda ^2}$
+        \item Bayesian method are usually outperforming the frequentist counterparts in the case the sample are scarce (small number of samples)
+    \end{itemize}

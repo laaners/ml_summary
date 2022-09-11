@@ -1,0 +1,486 @@
+% !TeX root = ../main.tex
+
+\section{Theory Questions}
+
+\subsection{Linear Regression}
+\subsubsection{Describe and compare ordinary least squares and Bayesian linear regression}
+    The ordinary least square technique for regression is a model for doing a regression task which considers the loss function of the residual sum of squares 
+    $$
+    L(w) = \frac 1 2 \sum ^N _{n=1} (t_n - w^T \phi(x_n))^2 
+    $$
+
+    Which in matrix form is 
+
+    $$
+    L(\bold w ) = \frac 1 2 (t-\Phi w)^T (t-\Phi w) 
+    $$
+
+    After computing the first and second gradient, and setting the first gradient = 0 we find a closed form solution for this error which is:
+
+    $$
+    w = (\Phi^T \Phi) ^{-1} \Phi^T t
+    $$
+
+    The Bayesian approach on the other hand is generative and uses Bayes' rule to estimaste the posterior distribution of the weights.
+
+    We know that Bayes rules given two events A and B is 
+
+    $$
+    P(A|B) = \frac{P(B|A) P(A)}{P(B)}
+    $$
+
+    P(B) is a marginalization factor so in our case it is useless.
+
+    In our case, we have:
+
+    $$
+    P(w|D) = P(D|w)P(w)
+    $$
+
+    where 
+
+    $P(w|D)$ is the posterior, probability of observing w given the data
+
+    $P(D|w)$ is the likelihood of observing the data given w
+
+    $P(w)$ is the prior over the parameters
+
+    If we assume that $P(D|w) \approx \mathcal{N}  ( t| w^T \Phi, \sigma ^2 I)$ and that $P(w) \approx \mathcal{N} (w | w_0, S_0)$  where $w_0, S_0$ are the mean and the variance of the distribution (the same goes above; the fact that we have an Identity matrix means that we assume that each sample is i.i.d) then
+
+    
+
+    $$
+    P(w|t, \Phi, \sigma ^2) \propto \mathcal{N} (w|w_0, S_0) \mathcal{N} (t|w^T \Phi, \sigma ^2 I_N) = \mathcal{N} (w_N, S_N) 
+    $$
+
+    with 
+
+    $$
+    w_N = S_N(S_0^{-1} w_0 + \frac{\Phi ^T t}{\sigma ^2})
+    $$
+    $$
+    S_N ^{-1} = S_0^{-1} + \frac{\Phi ^T \Phi}{\sigma ^2 }
+    $$
+
+    With no prior knowledge about the parameters, which means that we assume an infinite variance, the Bayesian approach reduces to the maximum likelihood estimator.
+
+    For a null prior mean and $S_0 = \tau ^2 I$ we obtain the ridge regression case with $\lambda = \frac{\sigma ^2}{\tau ^2}$
+
+    Ordinary Least Square is an approach that takes an error function and minimizes it, with a closed form solution available. The Bayesian approach is different because we not only find the values of the weights, but we also obtain the posterior distribution of the weights, which allows us to also specify the extent to which we are sure about the results.
+
+    Also, Bayes allows to incorporate prior knowledge about the weights.
+
+\subsubsection{Describe the Bayesian Linear Regression method and how it compares to Ridge Regression}
+    Bayesian linear regression is an approach for regression problems in which we are interested in a posterior distribution that models the parameters. The posterior can be found estimated combining the prior with the likelihood using Bayes' rule:
+    \begin{center}
+        $p(w|D)=\frac{p(D|w)P(w)}{P(D)}$
+    \end{center}
+    Assuming a Gaussian likelihood model with mean $\Phi w$ and covariance matrix $\sigma^2I_{N}$ which means our samples are i.i.d (identically distributed and independent), the conjugate prior is a Gaussian too with mean $w_{0}$ and covariance matrix $S_{0}$.
+    Given the data $D$, the posterior is still a Gaussian of mean $w_{N}$ and covariance matrix $S_{N}$:
+    \begin{itemize}
+        \item $p(D|w) => \mathcal{N}(t|\Phi w,\sigma^2I_{N})$, likelihood
+        \item $P(w) => \mathcal{N}(w|w_{0},S_{0})$, prior
+        \item $p(w|D) => \mathcal{N}(w|w_{N},S_{N})$, posterior
+    \end{itemize}
+    Where:
+    \begin{center}
+        $w_N = S_N(S_0^{-1} w_0 + \frac{\Phi ^T t}{\sigma ^2})$ \\~\\
+        $S_N ^{-1} = S_0^{-1} + \frac{\Phi ^T \Phi}{\sigma ^2 }$ \\
+    \end{center}
+    The Bayesian linear regression technique as explained allows the use of a prior distribution, which reduces the hypothesis space hence the probability of overfitting.
+    If we assume that $w_0 = 0$ and $S_0 = \lambda ^2 I_N$ then we get exactly the ridge regression technique formula, where $
+    \lambda = \frac{\sigma ^2}{\lambda ^2}$.
+
+\subsection{Linear Classification}
+\subsubsection{Describe the perceptron model and how it is trained}
+    The Perceptron is a direct approach which solves the classification problem that directly maps each input to its class. Consider a two-class model
+    $$
+    y(x)=f(w^T\phi(x)),\hspace{0.2em}where\hspace{0.2em}f(a)=
+    \begin{cases}
+        +1,\hspace{0.2em}a\geq 0\\
+        -1,\hspace{0.2em}a<0
+    \end{cases}
+    $$
+    Target values are +1 for $C_1$ and -1 for $C_2$. The algorithm finds the \textbf{separating hyperplane} by minimizing the \textbf{distance of missclassified points to the decision boundary}. The loss function to be minimize is
+    $$L_P(w)=-\sum_{n\in M}w^T\phi(x_n)t_n$$
+    Where $M$ is the set of missclassified points, $w^T\phi(x_n)$ is the equation of a plane, solving with $x_n$ results in 0 if point in plane, not 0 otherwise.\\
+    \textbf{Online method to optimize loss}, can minimize with \textbf{stochastic gradient descent}
+    $$w^{(k+1)}=w^{(k)}-\alpha\nabla L_P(w)=w^{(k)}+\alpha\phi(x_n)t_n$$
+    Since the Perceptron function does not change if $w$ is multiplied by a positive constant, \textbf{the learning rate $\alpha>0$ can be set to 1}.\\
+    The Perceptron tries to solve a semi-decidable problem: if the points are not linearly separable the algorithm never stops/converges, but if the training data is \textbf{linearly separable} in the feature space $\Phi$ then the Perceptron learning algorithm is guaranteed to find an \textbf{exact solution} in a \textbf{finite number of steps}
+
+\subsubsection{Describe the logistic regression model and how it is trained}
+    Logistic regression is a model that in its basic form solves the binary classification problem, but can be extended to solve multiclass classification. Its name derives from the fact that it uses a logistic sigmoid function to model a binary variable.\\
+    The model is discriminative, hence it tries to describe directly the posterior probability $P(C_k|\phi)$ where $\phi$ is the basis function applied to the inputs matrix.\\
+    In the case of a binary classification problem we have 
+    $$
+    P(C_1 | \phi) = \frac{1}{1+e^{-w^T \phi}}=\sigma(w^T\phi)
+    $$
+    $$
+    P(C_2|\phi) =1 - P(C_1|\phi)
+    $$
+    The error function used for logistic regression derives from a maximum likelihood estimation
+    $$p(t|X,w)=\prod_{n=1}^Ny_n^{t_n}(1-y_n)^{1-t_n},\hspace{1em}y_n=\sigma(w^T\phi_n)$$
+    Where $t_n$ is the true probability, 1 if the point is in $C_1$ and 0 otherwise.
+
+    Consider the \textbf{negative log-likelihood}, minimize it:
+    $$L(w)=-\ln p(t|X,w)=-\sum_{n=1}^N(t_n\ln y_n+(1-t_n)\ln(1-y_n))=\sum_{n=1}^N L_n$$
+    Compute the gradient and we get:
+    $$\nabla L(w)=\sum_{n=1}^N(y_n-t_n)\phi_n$$
+    \begin{itemize}
+        \item It has the same form as the gradient of the \textbf{sum of squares error function} for linear regression
+        \item \textbf{No closed-form solution}, due to non-linearity of the logistic sigmoid function, so we have to use iterative method (gradient descent)
+        \item Error/loss function \textbf{convex} and can be optimized by standard \textbf{gradient-based optimization} techniques, can use \textbf{online gradient descent$\Rightarrow$at each step overall loss decreases}
+        \item Easy to adapt to the \textbf{online learning setting}
+    \end{itemize}
+    \textbf{Differently from perceptron}:
+    \begin{itemize}
+        \item Logistic regression will find best solution according to hypothesis space (the solution is the one that minimizes its convex loss function) \textbf{even if we cannot find separation plane/training set not linearly separable}, if the training set is not linearly separable, the provided weights would not correspond to a separating hyperplane
+        \item We will \textbf{solve outliers problem}
+        \item It is possible to determine the significance of the paramters learned by the model, where the paramters have significance for the log odds of the model, while for Perceptron it's false as it only provides a sharp \{0,1\} label
+    \end{itemize}
+
+\subsection{Bias-Variance Tradeoff}
+\subsubsection{Discuss the bias-variance tradeoff}
+    If assume to have a dataset D with N samples, taken from a $t_i = f(x_i) + \epsilon$ with epsilon being estimated as a gaussian with mean = 0 and variance $\sigma ^2$, if we compute the expected value of the RSS and perform the bias variance decomposition, we get three terms: variance of the target ($\sigma^2$), variance of the predicted function and the bias\\
+    The first term is the irreducible error, generating directly from the problem that we can't remove\\
+    The variance of the function comes from sensitivity to small fluctuations in the training set; high variance can cause an algorithm to model random noise in the training data rather than the intended output (overfitting)\\
+    Bias: this is an error from erraneous assumptions in the learning algorithm, with high bias meaning that the algorithm is missing the relevant correlations between featurs and target outputs (underfitting).\\
+    The challenge in ML algorithms is to find the right balance between bias (model complexity) and variance. If we want to use complex models (more bias), we should also increase the size of out dataset to decrease the variance.  
+
+\subsubsection{Explain the cross validation procedure and what it can be used for}
+    Cross validation is a procedure used to evaluate the generalization capabilities of a model. There are two types:
+    \begin{itemize}
+        \item LOO: leave one out cross validation in which. Given a set of N samples, what we do is consider a validation set of 1 example. We train the model with N-1 samples and evaluate the validation error on the left out sample. We then repeat the procedure, considering each of the samples as validation set once, and average the result.\\
+        This is unbiased but has an extreme computational cost.
+        \item K-Fold: we divide the dataset in K equal parts; we can iterage over all the subsets k, consider them as the validation set and use the rest of the sample as training set, train the model and keep track of its performance. We repeat the same until each k part has been validation set once, and average the results out.\\
+        This is more biased but is must faster to compute.
+    \end{itemize}
+    Cross validation can be used for hyperparameter tuning, feature selection and in general to check if the model is overfitting.
+
+\subsubsection{Provide an overview of the feature selection methods that you know and explain their pros and cons}
+    Feature selection is technique to manage the tradeoff between bias and variance which consists in identifying a subset of input features that are most related to the output. In practice, it uses metaheuristics based on cross validation to build models:
+    \begin{itemize}
+        \item Filter methods: rank the features and select the best ones. The assumptions is that the features are independent from each other, otherwise if they are highly correlated we have few information. The ranking is done once, then it trains. We don't know the performance of the final model
+        \item Embedded methods: method used for supervised learning that intrinsically selects features. The learning algorithm exploits its own variable selection technique
+        \item Wrapper methods: solves optimization problem, they requires training of several models. They can be:
+        \begin{itemize}
+            \item \textbf{Brute force}: for each feature $x_k$ with $k\in\{1,\cdots,M\}$, learn all the possible $\begin{pmatrix}
+                M \\ k
+            \end{pmatrix}$ models with $k$ inputs and select the model with the smallest lost (and the $k$ providing that model).\\
+            If M too large, computation of all models is unfeasible.
+            \item \textbf{Forward selection}: starts from an empty model and adds features one-at-a-time, until you see no more improvement in adding more features.\\
+            Start training models, each one has a single feature. Evaluate the \textbf{performance} of each model, then take the best one, then go on considering couples including the first feature. Continue till performance starts decreasing (I DON'T WANT TO TAKE ALL FEATURES).\\
+            Worst case: take all features, which means I trained $M+(M-1)+(M-2)\cdots\sim M^2$ models
+            \item \textbf{Backward Elimination}: starts with all the features and removes the least useful feature, one-at-a-time. Check the \textbf{accuracy on validation}, test set should not be included in the validation process, training error will increase as long as we increase \#variables, larger error less accuracy
+        \end{itemize}
+    \end{itemize}
+
+\subsubsection{Describe and compare Ridge regression and Lasso algorithm to solve linear regression problems}
+    The regression problem's goal is to predict the value of one or more continous target variables t, given the value of a D-dimensional vector x of input variables. In its simples forms, linear models are linear functions of the input variables, but for better results, we prefer considering linear combinations of a fixed set of non-linear functions of the input variables known as basis functions. The linear part of the name hence is referring to the parameters, not the variables.\\
+    Typically when performing a linear regression algorithm, our goal is to minimize an error function. This error function is usually w.r.t. the data; Ridge and Lasso regression are both two linear regression models which introduce regularization, which means that other than the error on the data, we try to minimize also an error on the complexity of the model, regulated by a hyperparameter $\lambda$ which controls the latter.\\
+    Regularization looks for smoother models, with lower weights, hence simpler models, because this reduces the problem of overfitting.\\
+    Ridge regression uses an L2-norm normalization factor. Supposing our error on the data 1/2 RSS:
+    $$
+    L(w) = \frac{1}{2}  \sum_{i=1} ^N (t_i - w^T \Phi(x_i))^2 + \frac{\lambda}{2} || w||^2 _2 = \frac{1}{2}  \sum_{i=1} ^N (t_i - w^T \Phi(x_i))^2 + \frac{\lambda}{2}w^T w
+    $$
+    Given that the loss function is still quadratic, ridge has a closed form solution:
+    $$
+    \hat{w}_{ridge} = (\lambda I + \Phi ^T \Phi)^{-1} \Phi^T t 
+    $$
+    which differs from example from the OLS closed form solution:
+    $$
+    \hat w _{OLS} = (\Phi ^T \Phi)^{-1} \Phi^T t 
+    $$
+    Lasso on the other hand uses the L1-norm, which leads us to have:
+    $$
+    L(w) = \frac{1}{2}  \sum_{i=1} ^N (t_i - w^T \Phi(x_i))^2 + \frac{\lambda}{2} ||w||_1
+    $$
+    $$||w||_1 = \sum_{j=1}^N |w_j|$$
+    We can see that this function is not linear due to the absolute value in the second term, hence lasso doesn't have a closed form solution.\\
+    Difference between the two is that ridge has a closed form solution, but Lasso's non-linearity allows to set some weights to 0, which means it implicitly applies feature selection, leading to sparser models. Whereas Ridge will never allow weights to be 0. They might get very close to 0 but never 0 itself.
+
+\subsubsection{Describe the PCA technique and what it is used for}
+    The Principal Component Analysis technique is a model selection technique, particularly a dimension reduction one.\\
+    Dimensionality reduction transforms the original features projecting the input variables into a lower-dimensional subspace, with the model learning on the transformed one, and is an unsupervised method way of reducing the model complexity and avoid overfitting.\\
+    The idea is take into account the directions along the which we have the largest variance (more variance more info), and project all the points onto them. The new dataset is obtained by compression and we have discarded dimensions with small variance.\\
+    In practice:
+    \begin{enumerate}
+        \item Mean center the data, transalte the original data so that it has zero mean
+        $$\overline{x}=\frac{1}{N}\sum_{n=1}^Nx_n$$
+        \item Compute the covariance matrix $S$
+        $$S=\frac{1}{N-1}\sum_{n=1}^N(x_n-\overline{x})(x_n-\overline{x})^T$$
+        \item Compute the eigenvalues $\lambda$ and the eigenvectors of the covariance matrix $S$
+        \item Select the first $k$ largest (where $k$ is an hyperparameter) eigenvalues and their corresponding eigenvectors: they are the PCs. To compute the captured variance: $\lambda_k/\sum_i\lambda_i$
+        \item Once we have the PCs, project the data onto the new orthogonal base $E_k=(e_1,\cdots,e_k)\rightarrow X'=XE_k$
+    \end{enumerate}
+    \textbf{Criterion to select number of PCs}:
+    \begin{itemize}
+        \item When sum of considered eigenvalues is 90\% of the total sum of eigenvalues, we fix a threshold
+        \item Keep all PCs until we have a cumulative variance of 90\%-95\%
+        \item Keep all PCs which have more than 5\% of variance (discard those with low variance)
+        \item Find the elbow in the cumulative variance, it there is one the inclusion of the following PCs would not improve the representation of the data too much
+    \end{itemize}
+
+\subsection{PAC-Learning and VC Dimension}
+\subsubsection{Explain the VC dimension of a hypothesis sapce and what it is used for}
+    The VC dimension is used to compute a bound between the training error and the "true" error, in cases in which we have an infinite hypotheses space. A simple example of the latter is for example the linear classifier.
+    To define the VC dimension, we need two definitions:
+    \begin{itemize}
+        \item \textbf{Dichotomy}: a dichotomy of a set $S$ is a partition of the set into two disjoint subsets (e.g. any partition of input samples)
+        \item \textbf{Shattering}: a set of instances $S$ is shattered by an hypothesis space $H$ if and only if for every dichotomy of $S$ there exists some hypothesis in $H$ consistent with this dichotomy ($\forall$ dichotomy $\exists$ $h$ that perfectly classifies it)
+    \end{itemize}
+    The $VC(H)$ dimension of hypothesis space $H$ defined over instance space $X$ is the size of the largest finite subset of $X$ shattered by $H$. If an arbitrarily large finite sets of $X$ can be shattered by $H$, then $VC(H)=\infty$.\\
+    The bound we find:
+    $$L_{true}(h) \leq L_{train} (h) + \sqrt{\frac{VC(H)\left(\ln\frac{2N}{VC(H)} +1\right)+ \ln\frac{4}{\delta}}{N}}$$
+
+\subsection{Kernel methods}
+\subsubsection{*Describe what is a valid kernel function}
+
+\subsubsection{Explain what the Kernel Trick is, what it is used for, and in which ML methods it can be used.}
+    Linear models are usually not rich enough and cannot capture well non-linear patterns, so it is necessary changing the feature representation by mapping data into higher dimensions where the model exhibits linear patterns and the data becomes linearly separable. But computing such mapping can computationally complex and inefficient and also the number of features might become too large.\\
+    The kernel trick allows us to operate in the original feature space without computing the coordinates of the data in a higher dimensional space, avoiding both the aforementioned problems:
+    \begin{itemize}
+        \item The mapping doesn't have to be explicitly computed
+        \item Computations with the mapped features remain efficient
+    \end{itemize}
+    The kernel method is non-parametric, uses the entire dataset during the prediction phase meaning that the training phase is none. The model shifts from being complex in the number of features to being complex in the number of sampels. Furthermore non-parametric methods like the kernel are less affected by the curse of dimensionality.\\
+    The kernel method through a function that given two points, it outputs a value that works as similarity measure. The kernel function is given by:
+    $$k(x,x')=\phi(x)^T\phi(x')$$
+    It is symmetric and it's equal to zero when the two vectors are orthogonal.\\
+    The kernel trick should be used when:
+    \begin{itemize}
+        \item Data is not linearly separable
+        \item There is no regularity in data
+    \end{itemize}
+    The kernel can be used in the following ML methods:
+    \begin{itemize}
+        \item Ridge regression
+        \item Bayesian linear regression with Gaussian processes
+        \item Classification with SVM
+    \end{itemize}
+
+\subsubsection{Describe Gaussian Processes for regression problems}
+    Gaussian processes is a kernel method, in particular we can say that it the kernel version of the Bayesian linear regression approach. It defines a prior over functions directly instead of a prior over the parameters (as kernel methods are non-parametric), which can be converted into a posterior over functions once we have seen some data:
+    $$p(w)=\mathcal{N}(w|0,\lambda I)$$ $$y=\Phi w$$ $$p(y)=\mathcal{N}(y|0,K)$$
+    y is a linear combination of Gaussian distributed variables given by the elements of w and hence is itself a Gaussian, $K$ is the Gram matrix.\\
+    A Gaussian process is defined as a probability distribution over functions y(x) such that the set of values y(x) evaluated at an arbitrary set of points $x_1,\cdots x_N$ jointly have a Gaussian distribution.
+    \begin{itemize}
+        \item This distribution is completely specified by the mean and the covariance: usually we do not have any prior information about the mean of $y(x)$ so we take it to be zero
+        \item The covariance is given by the kernel function $\mathbb{E}[t(x_j)t(x_j)]=K(x_i,x_j)$
+    \end{itemize}
+    The idea is that if $x_i$ and $x_j$ are deemed by the kernel to be similar, then we expect the output of the function at those points to be similar.\\
+    By taking into account the noise on the target $t_n=y(x_n)+\epsilon_n$, the random noise is under a Gaussian distribution and it is independent on each data point, so the joint distribution is still Gaussian
+    $$p(t|y)=\mathcal{N}(t|y,\sigma^2I_N)$$
+    Since $p(y)=\mathcal{N}(y|0,K)$, we can compute the marginal distribution: $$p(t)=\int p(t|y)p(y)dy=\mathcal{N}(t|0,C)$$ where $C(x_n,x_m)=k(x_n,x_m)+\sigma^2\delta_{nm}$, covariance matrix of \textbf{target} variables has irreducible part in $\sigma^2$, irreducible error.\\
+    In order to predict a target $t_{N+1}$ given unseen input $x_{N+1}$, we need to evaluate the predictive distribution $p(t_{N+1}|t_N,x_1,\cdots,x_{N+1})$\\
+    From definition we know
+    $$p(t_{N+1})=\mathcal{N}(t_{N+1}|0,C_{N+1})$$
+    we know that the distribution of a new point is a Gaussian with zero mean, with covariance matrix:
+    $$
+    C_{N+1}=
+    \begin{pmatrix}
+        C_N & k \\
+        k^T & c
+    \end{pmatrix}
+    $$
+    k is a vector $k(x_i,x_N+1)$ for $i=1,\cdots,N$, is the correlation between each point in the training set and the new point.\\
+    $c$ is a scalar $c=k(x_{N+1},x_{N+1})+\sigma^2$, covariance of the single point.\\
+    The distribution of the new point:
+    \begin{itemize}
+        \item $p(t_{N+1}|t_N,x_1,\cdots,x_{N+1})$, is a Gaussian, what we want to compute
+        \item $m(x_{N+1})=k^TC^{-1}_Nt$
+        \item $\sigma^2(x_{N+1})=c-k^TC^{-1}_Nk$
+        \item The mean and the variance both depend on $x_{N+1}$
+        \item C has to be positive definite <=> the kernel functions is positive semi-definite
+    \end{itemize}
+
+\subsubsection{Describe Support Vector Machines (SVMs) for supervised classification problems. In particular explain how do they work, their strengths and weaknesses}
+    SVM is a kernel method used for classification and is a generalization of the Perceptron. It is a sparse method defined by:
+    \begin{itemize}
+        \item A subset of training samples
+        \item A vector of weights for the SVMs $\alpha$, calculated by maximizing the margin
+        \item A similarity function $K(x,x')$, a kernel
+    \end{itemize}
+    Let $\{(x_i,t_i),\cdots\}$ be the training set for a binary classification problem, such that if $t_i=1$, $x_i$ belongs to class $C_1$, if $x_i=-1$, $x_i$ belongs to class $C_2$, then the SVM classifier is the following:
+    $$y(x)=sign\left(\sum_{n=1}^{N_S}\alpha_nt_nk(x,x_n)+b\right)$$
+    $$b = \frac{1}{N_S} \sum _{s \in S} \left(t_n - \sum _ {m \in S} \alpha_m t_m k(x, x_m)\right)$$
+    With $N_S$ the number of SVs. The main goal of SVMs is to find the decision boundary in order to maximize the margin, which is defined as the minimum distance between the decision boundary hyperplane and its nearest point:
+    $$Margin=\min_nt_n(w^T\phi(x_n)+b)$$
+    $$w^*=\arg\max_{w,b}\left(\frac{1}{||w||_2}\min_nt_n(w^T\phi(x_n)+b)\right)$$
+    This optimization problem has one degree of freedom, but by scaling the points with the weights the solution does not change, so we fix the margin equal to 1 and reformulate it into an equivalent easier to solve problem:
+    $$
+    \begin{cases}
+        \text{Minimize\hspace{1em}}\frac{1}{2}||w||^2_2\\
+        \text{Subject to\hspace{1em}}t_n(w^T\phi(x_n)+b)\geq 1\hspace{1em}\forall\,\,n\,\,\in\,\,Training\,\,set
+    \end{cases}
+    $$
+    This problem can be solved if and only if we know the training set is linearly separable, otherwise when we are dealing with noisy data that is not linearly separable we introduce some soft constraints: hard margin to soft-margin
+    $$
+    \begin{cases}
+        \text{Minimize\hspace{1em}}||w||^2_2+C\sum_n\xi_n\\
+        \text{Subject to\hspace{1em}}t_n(w^T\phi(x_n)+b)\geq 1-\xi_n\hspace{1em}\forall\,\,n\,\,\in\,\,Training\,\,set\\
+        \xi\geq 0
+    \end{cases}
+    $$
+    Where $\xi_i$ is a slack variable whereas $C$ is a penalization term chosen through cross validation. $C$ is an hyperparameter used to tune the variance of the model: by increasing it also the variance of the model will increase as it would be more sensible to the variation of the dataset.\\
+    Bounds: train SVM, remove one sample, retrain... if solution does not change, correctly classified. Every time I remove a point, I assume an error, upperbound rate.
+    \begin{itemize}
+        \item \textbf{Margin bound}, bound on VC dimension decreases with margin. Larger the margin, less capacity to overfit, less VC dimension. Margin is \textbf{quite loose}
+        \item \textbf{Leave-one-out bound}
+        $$L_h\leq\frac{\mathbb{E}[Number\,of\,support\,vectors\,|S|\,or\,N_S]}{N}$$
+        It can be easily computed, we do not need to run SVM multiple times
+        We use N-1 samples for training and one sample for validation, repeating this operation N times.\\
+        The loss function will be upper bounded by the probability of missclassifying a point.
+    \end{itemize}
+    Pro:
+    \begin{itemize}
+        \item The prediction uses only a subset of the training data, so SVMs are more efficient in prediction than other kernel based methods
+        \item If new data comes to the dataset, SVMs must be retrained only if there are new data closer to the decision boundary: only new inputs near the margins/boundary/separating plane will likely modify the SVM separating surface, so must retrain
+        \item The use of kernel allows to find non-linear boundaries
+    \end{itemize}
+    Cons:
+    \begin{itemize}
+        \item  It suffers from the curse of dimensionality: the more data/dimensions of the input space, the more support vectors, which implies poorer generalization, increasing of variance and decreasing of the performance in prediction
+    \end{itemize}
+
+\subsection{Markov Decision Processes}
+\subsubsection{*Describe the properties of the Bellman operators}
+
+\subsubsection{Describe the policy iteration algorithm}
+    Policy iteration is a dynamic programming based approach to solve the prediction and control task for an infinite-horizon discounted MDP.\\
+    It consists of two steps:
+    \begin{itemize}
+        \item \textbf{Policy evaluation}. For starters, we initialize a policy $\pi$ that is arbitrary, we compute the state-value function given the current policy $\pi$, which is done by using the closed form solution of the Bellman expectation equation
+        $$
+        V^\pi (s) = \sum _{a \in A} \pi (a|s) \left(R(s,a) + \gamma \sum _{s' \in S} P(s'| s, a) V^\pi(s')\right)
+        $$
+        with the solution being
+        $$
+        V^\pi = (I-\gamma P^\pi)^{-1}R^\pi
+        $$    
+        or the iterative approach using Bellman's operator
+        $$
+        \lim _{k \rightarrow \infty} (T^\pi)^kV^\pi = V^\pi 
+        $$
+        \item \textbf{Policy improvement}: we can improve the policy $\pi$ by acting greedily:
+        $$
+        \pi'(s) = \arg\max_{a \in A}Q^{\pi_{0}} (s, a)
+        $$
+        Thanks to the policy improvement theorem we know that using a greedy operator the new policy $\pi'$ will have a better or equal perfomance w.r.t. the previous one $\pi$.\\
+        The algorithm stops when we reach the fixed point of the Bellman operator (optimal value function), so when $V^{\pi'} = V^{\pi}$
+    \end{itemize}
+
+\subsubsection{Describe the value iteration algorithm and its properties}
+    Value iteration is the alternative to policy iteration and is a control problem algorithm in which the goal is to find the optimal policy given an MDP.\\
+    Given the Bellman optimality operator $T^*$ for $V^*$, defined as a function from $T^*: \mathbb{R}^{|S|} \rightarrow \mathbb{R}^{|S|}$ the latter is defined as:
+    $$
+    (T^*V^*) (s) = \max_{a \in A} \left\{ R(s,a ) + \gamma \sum _{s' \in S} P(s'| s, a) V^* (s')\right\}
+    $$
+    The value iteration approach uses the Bellman optimality operator recursively to converge to $V^*(s)$, hence obtaining an approximation of it. Unlinke policy iteration, there is no explicit policy.\\
+    The approximation error can be defined as:
+    $$
+    ||V_{i+1}-V_i||_\infty<\epsilon\implies ||V_{i+1}-V^*||_\infty<\frac{2\epsilon\gamma}{1-\gamma}
+    $$
+    One of the properties of such operator is that if we apply it infinite times, we eventually converge to the optimal function. Once we have the optimal state-value function, we can find the optimal policy through a greedy approach for example.\\
+    It is to be noted that we cannot apply the operator infinite times in a real case scenario, and for intermediate result of the value iteration algorithm there might not be corresponding policies, hence depending on when the approximation stops we might have or not the optimal policy.
+
+\subsection{RL: Model-Free Prediction}
+\subsubsection{Describe and compare Monte-Carlo and Temporal Difference for model-free policy evaluation}
+    Monte-Carlo is a model-free policy evaluation algorithm, which given an input of a series of episodes (sequences of state, action, reward) return the state-value function. This procedure is to be used in episodic MDP problems, which means that there must be an absorbing state and when we reach it, the problem starts over from the starting state.\\
+    Monte-Carlo works by using the expected empirical mean of the returns from each state instead of the expect return to estimate the state-value function. We collect various episodes and compute the empirical mean of the returns for each to estimate $V^\pi(s)$.\\
+    There are two ways to do this, either by first visit or every visit. In the first case only the return of a first visit of each state is considered, whereas with every visit we consider every return from every visit.\\
+    First visit is unbiased, which means it has a high variance, and is to be used when we have lots of data; every visit is recommended with few data.\\
+    The value function can be also computed incrementally, by using
+    $$
+    V(s_t) \leftarrow  V(s_t) + \frac{1}{N(s_t)}(v_t - V(s_t))
+    $$
+    Where $N(s_t)$ is the number of times we've traversed that state.\\
+    We can also apply Monte-Carlo for non-stationary MDPs:
+    $$
+    V(s_t) \leftarrow V(s_t) + \alpha (v_t - V(s_t))
+    $$
+    Main points:
+    \begin{itemize}
+        \item Can only be used on episodic MDPs
+        \item Needs the entire episode to learn
+        \item Doesn't bootstrap
+        \item Can only evaluate one arm at a time and the total time to estimate a state doesn't depend on the cardinality of $|S|$ but instead of the variance of the samples.
+    \end{itemize}
+    Temporal Difference Learning is also a model-free policy evaluation algorithm, which learns directly from episodic experience. It can learn from incomplete episodes, and the update value of each state is as follows:
+    $$
+    V(s_t) \leftarrow V(s_t) + \alpha(r_{t+1} +\gamma V(s_{t+1}) - V(s_t))
+    $$
+    Differences:
+    \begin{itemize}
+        \item TD can learn before knowing the final outcome of the episode, whereas MC must wait for the end of the episode
+        \item TD can also learn without knowing the final outcome, as it is not episodic, which means it works in non-terminating situations
+        \item TD is fairly biased but with a good variance, MC is more unbiased hence higher variance
+        \item TD is more sensitive to initial value initialization
+        \item MC is more recommended to use in approximation functions than TD
+    \end{itemize}
+
+\subsubsection{*Explain what are eligibility traces and describe the TD($\lambda$) algorithm}
+
+\subsection{RL: Model-Free Control}
+\subsubsection{Describe and compare Q-learning and SARSA}
+    Both are methods used for the control problem of a MDP, which is the evaluating the state-value or state-action value function of a given policy.\\
+    SARSA can be considered the on-policy model-free version of the Temporal Difference:
+    $$
+    Q(s, a) \leftarrow Q(s, a) + \alpha(r + \gamma Q(s', a') - Q(s, a))
+    $$
+    Just like in the prediction problem, SARSA updates the state action value function after each timestep, and does not need the entire episode unlike the Monte Carlo approach. For the policy improvement SARSA uses $\epsilon$-greedy policy improvement.\\
+    SARSA is proven to converge to the optimal action-value function if the followings conditions are respected:
+    \begin{itemize}
+        \item GLIE: Greedy In the limit of Infinite Exploration. An exploration strategy is said to be GLIE if:
+        \begin{itemize}
+            \item \textbf{All} state-action pairs are explored \textbf{infinitely} many times
+            $$\lim_{k\rightarrow\infty}N_k(s,a)=\infty$$
+            \item The policy \textbf{converges} on a \textbf{greedy} policy
+            $$\lim_{k\rightarrow\infty}\pi_k(a|s)=1(a=\arg\max_{a'\in A}Q_k(s',a'))$$
+        \end{itemize}
+        \item Robbins-Monro sequence for the learning rate $\alpha_t$
+        $$\sum_{t=1}^\infty\alpha_t=\infty$$
+        $$\sum_{t=1}^\infty\alpha^2_t<\infty$$
+    \end{itemize}
+    Q-Learning on the other hand is a model-free off-policy method to solve the control problem, which means that it uses a different policy from the one used to sample the data to estimate the target policy. It is the empirical version of value iteration, while SARSA is the empirical version of policy iteration.\\
+    It is similar to being the off-policy version of SARSA, as we can see from the action-value function update formula:
+    $$
+    Q(s,a) \leftarrow Q(s,a) + \alpha(r + \gamma\max_{a' \in A}Q(s', a') - Q(s, a))
+    $$
+    The difference with SARSA is that the next action $a'$ is chosen with the greedy policy instead the current policy; but most importantly it can be proven that Q-Learning converges to $Q^*$ even without the GLIE condition, so we don't have to stop exploring in order to converge to the optimal solution. Even a random starting policy will lead us to optimal convergence!\\
+    In an $\epsilon$-greedy setting, if $\epsilon\neq 0$ SARSA performs better online.\\
+    While SARSA can be seen as the model-free version of policy iteration, Q-Learning can be seen as the model-free version of value iteration. 
+
+\subsection{Multi-Armed Bandit}
+\subsubsection{Describe the Thompson Sampling algorithm for multi-armed bandit problem}
+    The Thompson Sampling algorithm is a Bayesian algorithm for stochastic MAB problem. A multi armed bandit problem is a problem in which we have a fixed amount of resources to allocate to a series of alternate choices, with each choice's properties completely or partially unknown at the time of choice, with the goal of maximizing the expected reward. Knowledge about the properties may be shed by time passing or by selecting it.\\
+    A stochastic MAB is a MAB in which the reward of an arm is drawn from a distribution, which is stationary over time.
+    The algorithm works as follows:
+    \begin{itemize}
+        \item Consider a \textbf{Bayesian prior} for each arm $f_1,\cdots,f_N$ as a starting point for the expected value of the reward (i.e. $\mu_i\sim Beta(1,1)=U([0,1])$. During the learning process we update the beta distribution using the posterior provided by the reward)
+        \item At each round $t$ we sample a reward from each one of the arm distribution $\hat{r}_1,\cdots,\hat{r}_N$
+        \item \textbf{Pull} the arm $a_{i_t}$ with the highest sampled value $i_t=\arg\max_i\hat{r}_i$ (according to largest distribution)
+        \item \textbf{Update} the prior incorporating the new information
+    \end{itemize}
+    Particularly, the conjugate prior distributions we use are $Beta(\alpha, \beta)$ and the Bernoulli:
+    \begin{itemize}
+        \item Start from a prior $f_i(0)=Beta(1,1)$ (uniform prior) for each arm $a_i\in A$
+        \item Keep a distribution $f_i(t)=Beta(\alpha_t,\beta_t)$ incorporating information gathered from each arm $a_i\in A$
+        \item After we pulled arm $a_i$, we get Bernoulli reward. Then we incrementally update the prior incorporating the information gathered from the pulled arm $a_i$:
+        \begin{itemize}
+            \item In the case of a success occurs $f_i(t+1)=Beta(\alpha_t+1,\beta_t)$
+            \item In the case of a failure occurs $f_i(t+1)=Beta(\alpha_t,\beta_t+1)$
+        \end{itemize}
+        After the update we would sill have a $Beta$ distribution
+        \item Theorem, Thompson Sampling upper bound, Kaufmann \& Munos:
+        $$L_T\leq O\left(\sum_{a_i\in A:\Delta_i>0}\frac{\Delta_i}{KL(R(a_i),R(a^*))}(\log T+\log\log T)\right)$$
+    \end{itemize}
+    If the rewards were Gaussian, it is not meaningful to use $Beta$ distribution as prior: they might provide also negative values.\\
+    \textbf{Main points}:
+    \begin{itemize}
+        \item \textbf{Online learning}
+        \item Incorporates \textbf{expert knowledge} about the problem in the arms
+        \item Provide \textbf{tight theoretical upper bound} on the expected regret in the stochastic setting, aswell as UCB
+        \item TS modifies $Beta$ distribution corresponding to the pulled arm: at each turn it modifies the statistics of the chosen arm
+    \end{itemize}

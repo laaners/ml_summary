@@ -1,0 +1,261 @@
+% !TeX root = ../main.tex
+
+\section{RL: Model-Free Control}
+    Some problems that can be modeled as MDPs: elevator, parallel parking, helicopter, game of go, robot walking, quake, portfolio management...\\
+    For most of these problems the model:
+    \begin{itemize}
+        \item Is \textbf{unknown}, but experience can be \textbf{sampled}
+        \item Is \textbf{known}, but is \textbf{too big} to use, except by samples
+    \end{itemize}
+    Model-free control can solve these problems.
+
+\subsection{On-Policy Monte-Carlo control}
+    \begin{itemize}
+        \item On-policy learning: learn the job, learn about policy $\pi$ from experience sampled from $\pi$
+        \item Off-policy learning: learn over someone shoulder, learn about policy $\pi$ from experience sampled from $\overline{\pi}$
+    \end{itemize}
+    Two steps for this algorithm:
+    \begin{enumerate}
+        \item \textbf{Policy evaluation} with MC, $Q=Q^\pi$, e.g. iterative policy evaluation with Bellman
+        \item \textbf{Policy improvement} with Bellman for greedy policy improvement: generate $\pi' \geq \pi$
+    \end{enumerate}
+    Starting from $V$ we cannot compute in model-free way, so we use $Q$, MC with $Q$:
+    \begin{itemize}
+        \item Greedy policy improvement over $V(s)$ requires model of MDP:
+        $$\pi'(s)=\arg\max_{a\in A}\left\{R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V(s')\right\}$$
+        \item Greedy policy improvement over $Q(s,a)$ is \textbf{model-free}:
+        $$\pi'(s)=\arg\max_{a\in A}Q(s,a)$$
+    \end{itemize}
+\subsubsection{On-policy exploration: $\epsilon$-greedy exploration}
+    The policy for MDPs is stochastic Markovian, but here it is deterministic (greedy policy is deterministic): $Q$ function of deterministic policy, we cannot estimate utility of unchosen policies/actions, as some actions will never be chosen as not stochastic.\\
+    We cannot learn optimal policy, we need stochasticity in order to explore, \textbf{$\epsilon$-greedy exploration}:
+    \begin{itemize}
+        \item $m$ actions, with probability of $1-\epsilon$ to choose the greedy action and $\epsilon$ to choose random action (for $\epsilon=0$ we go back to greedy)
+        $$
+        \pi(s,a)=
+        \begin{cases}
+            \frac{\epsilon}{m}+1-\epsilon\hspace{1em}if\hspace{0.2em}a^*=\arg\max_{a\in A}Q(s,a)\\
+            \frac{\epsilon}{m}\hspace{4em}otherwise
+        \end{cases}
+        $$
+        \item Thanks to policy iteration theorem that says it cannot get worse, we have policy improvement theorem here too: $\epsilon$-greedy policy improvement
+    \end{itemize}
+\subsubsection{GLIE: greedy in the limit of infinite exploration}
+    \textbf{Definition}: an exploration strategy is said to be GLIE
+    \begin{itemize}
+        \item \textbf{All} state-action pairs are explored \textbf{infinitely} many times
+        $$\lim_{k\rightarrow\infty}N_k(s,a)=\infty$$
+        \item The policy \textbf{converges} on a \textbf{greedy} policy
+        $$\lim_{k\rightarrow\infty}\pi_k(a|s)=1(a=\arg\max_{a'\in A}Q_k(s',a'))$$
+    \end{itemize}
+    Algorithm that converges to optimal action-value function $Q^*$ with two assumptions:
+    \begin{enumerate}
+        \item \textbf{GLIE in exploration}
+        \item \textbf{Learning that decreases (Robbins-Monro)}
+    \end{enumerate}
+    The algorithm:
+    \begin{itemize}
+        \item \textbf{Sample} $k$-th episode using $\pi:\left\{s_1,a_1,r_2,\cdots,s_T\right\}~\pi$
+        \item For each state $s_t$ and action $a_t$ in the episode, MC incremental update but use $Q$:
+        $$N(s_t,a_t)\leftarrow N(s_t,a_t)+1$$
+        $$Q(s_t,a_t)\leftarrow Q(s_t,a_t)+\frac{1}{N(s_t,a_t)}(v_t-Q(s_t,a_t))$$
+        Where $N(s_t)$ is the number of times we have traversed that state.\\
+        \item \textbf{Improve policy} based on new action-value function
+        $$\epsilon\leftarrow\frac{1}{k}$$
+        $$\pi\leftarrow\epsilon-greedy(Q)$$
+    \end{itemize}
+    GLIE MC control \textbf{converges to the optimal} action-value function $Q(s,a)\rightarrow Q^*(s,a)$.\\
+    Not as efficient as MC, can be unbiased but lot of variance, but converges.\\
+
+\subsection{On-Policy Temporal Difference: SARSA}
+    Advantages over MC:
+    \begin{itemize}
+        \item Lower variance
+        \item Online
+        \item Incomplete sequences
+    \end{itemize}
+    The idea:
+    \begin{itemize}
+        \item Apply TD to $Q(s,a)$
+        \item Use $\epsilon$-greedy policy improvement
+        \item Update every time-step
+    \end{itemize}
+    SARSA (state action reward state action) updates $Q$ with $Q$ of next step, learning rate $\alpha$ should have higher value than $\frac{1}{n}$ in order to forget faster initial value. \textbf{Here the strategy is GLIE aswell}.
+    $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma Q(s',a')-Q(s,a))$$
+    Every time-step:
+    \begin{itemize}
+        \item \textbf{Policy Evaluation}: SARSA, $Q~Q^\pi$, with the TD update of the $Q$ function
+        $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma Q(s',a')-Q(s,a))$$
+        \item \textbf{Policy Improvement}: $\epsilon$-greedy policy improvement
+    \end{itemize}
+    SARSA updates at each state, policy evaluation and improvement simultaneous.\\
+    \\
+    \fbox{\begin{minipage}{\linewidth}
+        \begin{addmargin}[0em]{0em}
+            Initialize $Q(s,a)$ arbitrarily\\
+            \textbf{loop}
+            \begin{addmargin}[1em]{0em}
+                Initialize $s$\\
+                Choose $a$ from $s$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                \textbf{repeat}
+                \begin{addmargin}[1em]{0em}
+                    Take action $a$, observe reward $r$, and next state $s'$\\
+                    Choose $a'$ from $s'$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                    $Q(s,a)\leftarrow Q(s,a)+\alpha[r+\gamma Q(s',a')-Q(s,a)]$\\
+                    $s\leftarrow s';\,a\leftarrow a'$
+                \end{addmargin}
+                \textbf{until} $s$ is terminal
+            \end{addmargin}
+            \textbf{end loop}
+        \end{addmargin}
+    \end{minipage}}
+\subsubsection{Convergence of SARSA}
+    GLIE exploration and Robbins-Monro on learning rate:\\
+    SARSA converges to the optimal action-value function $Q(s,a)\leftarrow Q^*(s,a)$ under the following conditions:
+    \begin{itemize}
+        \item GLIE sequence of policies $\pi_t(s,a)$
+        \item Robbins-Monro sequence for the learning rate/step-sizes $\alpha_t$
+        $$\sum_{t=1}^\infty\alpha_t=\infty$$
+        $$\sum_{t=1}^\infty\alpha^2_t<\infty$$
+    \end{itemize}
+\subsubsection{SARSA with eligibility traces}
+    \begin{itemize}
+        \item \textbf{Forward-view}: update action-value $Q(s,a)$ to $\lambda$-return $v_t^\lambda$
+        \item \textbf{Backward-view}: use eligibility traces for state-action pairs
+        $$e_t(s,a)=\gamma \lambda e_{t-1}(s,a)+1(s,a=s_t,a_t)$$
+    \end{itemize}
+    Similar to TD($\lambda$), whenever step, propagate temporal difference error $\delta$.\\
+    \fbox{\begin{minipage}{\linewidth}
+        \begin{addmargin}[0em]{0em}
+            Initialize $Q(s,a)$ arbitrarily\\
+            \textbf{loop}
+            \begin{addmargin}[1em]{0em}
+                $e(s,a)=0$, $\forall$ s,a\\
+                Initialize $s,a$\\
+                \textbf{repeat}
+                \begin{addmargin}[1em]{0em}
+                    Take action $a$, observe reward $r$, and next state $s'$\\
+                    Choose $a'$ from $s'$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                    $\delta\leftarrow r+\gamma Q(s',a')-Q(s,a)$\\
+                    $e(s,a)\leftarrow e(s,a)+1$\\
+                    \textbf{for all} $s \in S$ \textbf{do}
+                    \begin{addmargin}[1.5em]{0em}
+                        $Q(s,a)\leftarrow Q(s,a)+\alpha\delta e(s,a)$\\
+                        $e(s,a)\leftarrow \gamma\lambda e(s,a)$
+                    \end{addmargin}
+                    \textbf{end for}\\
+                    $s\leftarrow s';\,a\leftarrow a'$
+                \end{addmargin}
+                \textbf{until} $s$ is terminal
+            \end{addmargin}
+            \textbf{end loop}
+        \end{addmargin}
+    \end{minipage}}
+\subsection{Off-Policy Importance Sampling}
+    Learn about policy $\pi(a|s)$ while following policy $\overline{\pi}(a|s)$:
+    \begin{itemize}
+        \item Learn from observing humans or other agents
+        \item Re-use experience generated from old policies $\pi_1,\pi_2,\cdots,\pi_{t-1}$
+        \item Learn about \textbf{optimal} policy while following \textbf{exploratory} policy
+        \item Learn about \textbf{multiple} policies while following \textbf{one} policy
+    \end{itemize}
+    \textbf{Importance sampling}: estimate the expectation of a different distribution w.r.t. the distribution used to \textbf{draw samples}.
+    $$\mathbb{E}_{x\sim P}[f(x)]=\sum P(x)f(x) = \sum Q(x)\frac{P(x)}{Q(x)}=$$
+    $$=\mathbb{E}_{x\sim Q}\left[\frac{P(x)}{Q(x)}f(x)\right]$$
+    Expected value of unknown function $f$ w.r.t. known distribution $P$. We estimate the expected value of $P$ by taking samples from $Q$, averaging and \textbf{weighting} them (and not taking samples from $P$ and averaging them.)\\
+    In a region where $P$ has few samples, while $Q$ has a lot, we discard them, weight them low and viceversa.\\
+    If $P$ and $Q$ very different, $\frac{P(x)}{Q(x)}$ introduces a lot of variance that can reach infinite, in which case we cannot learn even with infinite samples.\\
+    Suppose MC, what is $f$? What is the function of which we want the expected value? It's the value function with x=trajectory.\\
+    Probability of the trajectory: probability of taking action in that state*prob of transition.\\
+    $P(x)$ target policy\\
+    $Q(x)$ behavior policy
+\subsubsection{Importance sampling for off-policy Monte-Carlo}
+    \begin{itemize}
+        \item Use returns \textbf{generated by following} $\overline{\pi}$ to \textbf{evaluate} $\pi$
+        \item Weight return $v_t$ according to \textbf{similarity} between policies
+        \item Multiply \textbf{importance sampling corrections} along whole episode
+        $$v_t^\mu=\frac{\pi(a_t|s_t)\pi(a_{t+1}|s_{t+1})}{\overline{\pi}(a_t|s_t)\overline{\pi}(a_{t+1}|s_{t+1})}\cdots\frac{\pi(a_T|s_T)}{\overline{\pi}(a_T|s_T)}v_t$$
+        \item Update value towards \textbf{corrected} return
+        $$Q_t(s_t|a_t)\leftarrow Q(s_t,a_t)+\alpha(v_t-Q(s_t,a_t))$$
+        \item Cannot use when $\overline{\pi}$ is zero where $\pi$ is non-zero
+        \item Can dramatically \textbf{increase variance}
+    \end{itemize}
+\subsubsection{Importance sampling for off-policy SARSA}
+    \begin{itemize}
+        \item Use \textbf{TD targets} generated from $\pi$ to evaluate $\overline{\pi}$
+        \item \textbf{Weight} TD target $r+\gamma Q(s',a')$ according to \textbf{similarity} between policies
+        \item Only need a single importance sampling correction
+        $$Q(s_t,a_t)\leftarrow Q(s_t,a_t)+\alpha\left(r_{t+1}+\gamma\frac{\pi(a_{t+1}|s_{t+1})}{\overline{\pi}(a_{t+1}|s_{t+1})}Q(s_{t+1},a_{t+1})-Q(s_t,a_t)\right)$$
+        \item \textbf{Much lower variance} than MC importance sampling
+        \item Policies only need to be similar over a \textbf{single step}
+    \end{itemize}
+
+\subsection{Off-Policy Q-Learning}
+    \begin{itemize}
+        \item Learn about \textbf{optimal policy} $\pi=\pi^*$ from experience sampled from \textbf{behavior policy} $\overline{\pi}$
+        \item Estimate $Q(s,a)\approx Q^*(s,a)$
+        \item Behavior policy \textbf{can depend on} $Q(s,a)$, e.g. $\overline{\pi}$ could be $\epsilon$-greedy with respect to $Q(s,a)$, as $Q(s,a)\rightarrow Q^*(s,a)$ behavior policy $\overline{\pi}$ improves
+        \item Q-learning is \textbf{empirical version of value iteration, while SARSA empirical version of policy iteration}
+        \item \textbf{Convergence}: for SARSA Robbins-Monro on learning rate and GLIE exploration for convergence, for Q-learning just Robbins-Monro without GLIE, so we don't have to stop exploring in order to converge to the optimal solution
+        \item If we remove exploration
+        \begin{itemize}
+            \item Q-learning converges to optimal even if never decreases exploration rate, with $\epsilon=0$, learning not aware of exploration, Q-learning always sees greedy policy and not influenced by $\epsilon$ and updates using \textbf{Bellman optimality equation}
+            $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma \max_{a'\in A}Q(s',a')-Q(s,a))$$
+            Where the $s'$ indicates next state
+            \item SARSA when learning aware of exploration, learns behavior influenced by exploration, so greedy closer to optimal path but needs GLIE assumption, must see $\epsilon$ that reduces
+            $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma Q(s',a')-Q(s,a))$$
+        \end{itemize}
+        \item Cliff-walking task, reward is -1 on all transitions except those into the region marked Cliff. Stepping into this region incurs a reward of optimal path -100 and sends the agent instantly back to the start:
+        \begin{itemize}
+            \item Q-learning learns \textbf{optimal policy along edge}
+            \item SARSA learns a \textbf{safe non-optimal policy away from edge}
+        \end{itemize}
+        \item $\epsilon$-greedy algorithm:
+        \begin{itemize}
+            \item For $\epsilon\neq 0$ SARSA performs \textbf{better online}
+            \item For $\epsilon\rightarrow 0$ gradually, \textbf{both converge to optimal}
+        \end{itemize}
+    \end{itemize}
+    Normal SARSA:
+    $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma Q(s',a')-Q(s,a))$$
+    \fbox{\begin{minipage}{\linewidth}
+        \begin{addmargin}[0em]{0em}
+            Initialize $Q(s,a)$ arbitrarily\\
+            \textbf{loop}
+            \begin{addmargin}[1em]{0em}
+                Initialize $s$\\
+                Choose $a$ from $s$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                \textbf{repeat}
+                \begin{addmargin}[1em]{0em}
+                    Take action $a$, observe reward $r$, and next state $s'$\\
+                    Choose $a'$ from $s'$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                    $Q(s,a)\leftarrow Q(s,a)+\alpha[r+\gamma Q(s',a')-Q(s,a)]$\\
+                    $s\leftarrow s';\,a\leftarrow a'$
+                \end{addmargin}
+                \textbf{until} $s$ is terminal
+            \end{addmargin}
+            \textbf{end loop}
+        \end{addmargin}
+    \end{minipage}}
+    \\
+    \\
+    Q-learning, chooses greedy action:
+    $$Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma \max_{a'\in A}Q(s',a')-Q(s,a))$$
+    \fbox{\begin{minipage}{\linewidth}
+        \begin{addmargin}[0em]{0em}
+            Initialize $Q(s,a)$ arbitrarily\\
+            \textbf{loop}
+            \begin{addmargin}[1em]{0em}
+                Initialize $s$\\
+                \textbf{repeat}
+                \begin{addmargin}[1em]{0em}
+                    Choose $a$ from $s$ using policy derived from $Q$ (e.g. $\epsilon$-greedy)\\
+                    Take action $a$, observe reward $r$, and next state $s'$\\
+                    $Q(s,a)\leftarrow Q(s,a)+\alpha(r+\gamma \max_{a'}Q(s',a')-Q(s,a))$\\
+                    $s\leftarrow s'$
+                \end{addmargin}
+                \textbf{until} $s$ is terminal
+            \end{addmargin}
+            \textbf{end loop}
+        \end{addmargin}
+    \end{minipage}}

@@ -1,0 +1,100 @@
+% !TeX root = main
+\documentclass[a4paper, 11pt]{article}
+
+%------------------------------------------------------------------------------------
+% import packages
+\usepackage[scaled]{helvet}
+%\usepackage{courier}
+%\renewcommand\familydefault{\sfdefault} 
+
+% Should include times new roman according to the slides
+\usepackage{mathptmx}
+
+% To use matrix
+\usepackage{amsmath}
+
+% To use mathbb
+\usepackage{amssymb}
+
+% To draw FSA
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning,decorations.text,topaths,arrows.meta,decorations.pathmorphing,quotes}
+
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{ltablex}
+\usepackage{multirow}
+\usepackage{subfig}
+\usepackage{caption, booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage[shortlabels]{enumitem}
+
+% Font weight for pictures labels
+\usepackage[labelfont=bf]{caption}
+
+% No indent on new paragraphs
+\usepackage[parfill]{parskip}
+
+% Margins
+\usepackage[margin=1in]{geometry}
+
+% Set TOC Depth
+\setcounter{tocdepth}{3}
+
+% Left space
+\usepackage{scrextend}
+
+\graphicspath{ {images/} }
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\begin{document}
+
+\begin{titlepage}
+	\centering
+    \begin{tabular}{rl}
+        Alessio Hu & (12345678)
+    \end{tabular}
+
+    \vspace{1.5cm}
+    {\Huge \textbf{Machine Learning Summary\\}}
+    \vspace{1.5cm}
+    {\large 
+        Machine Learning \\
+        Prof. Restelli Marcello \\ 
+		DEIB - Politecnico di Milano \par
+    }
+    \vspace{1.5cm}
+    {\large \textbf{Something:}\\
+    \vspace{0.5cm}
+    Something else}
+    \par
+    \vspace{3cm}
+    \includegraphics[scale=0.4]{images/logo.pdf}
+    \par
+    \vspace{3cm}
+	A.Y. 2021-2022
+\end{titlepage}
+
+\tableofcontents
+    \include{sections/acronyms}
+    \include{sections/linear_regression}
+    \include{sections/linear_classification}
+    \include{sections/bias_variance}
+    \include{sections/pac_vc}
+    \include{sections/kernel_regression}
+    \include{sections/kernel_classification}
+    \include{sections/mdp}
+    \include{sections/rl_prediction}
+    \include{sections/rl_control}
+    \include{sections/mab}
+    \include{sections/theory}
+    \include{sections/exercise}
+\end{document}

@@ -1,0 +1,388 @@
+% !TeX root = ../main.tex
+
+\section{Markov Decision Processes}
+\subsection{Environment and agent}
+    At each step t the agent:
+    \begin{itemize}
+        \item Executes action $a_t$
+        \item Receives observation $o_t$
+        \item Receives scalar reward $r_t$
+    \end{itemize}
+    The environment:
+    \begin{itemize}
+        \item Receives action $a_t$
+        \item Emits observation $o_t$
+        \item Emits scalar reward $r_t$
+    \end{itemize}
+    Different from control theory in which there is no reward by only cost to minimize.\\
+    In a MDP, the environment is fully observable: the agent directly observes environment state $o_t=s_t^a=s_t^e$\\
+    \textbf{RL is useful when}:
+    \begin{itemize}
+        \item Environment reacts to the actions of the agent in an unpredictable way, we have no knowledge of model (\textbf{NOT simulated environment})
+        \item We know model/system equation, but it is too complex to be solved with classical methods, approximate solutions
+    \end{itemize}
+    \textbf{A problem can be}:
+    \begin{tabularx}{\linewidth}{X|X|X|X}
+        \toprule
+        \textbf{More complex} & \textbf{Examples} & \textbf{Simpler case} & \textbf{Examples} \\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{More complex} & \textbf{Examples} & \textbf{Simpler case} & \textbf{Examples} \\
+        \midrule
+        \endhead
+        \midrule
+        \footnotesize [Continues on next page]
+        \endfoot
+        \bottomrule
+        \endlastfoot
+            % body
+            Discrete state & Rubik, Blackjack & Continuous state & Pole balancing\\ \midrule
+            Discrete actions & Rubik, Blackjack & Continuous actions & Pole balancing\\ \midrule
+            Deterministic & Rubik, Pole balancing simulation & Stochastic & Blackjack, Pole balancing irl for noise\\ \midrule
+            Fully observable & Rubik, Blackjack online/simulated, Pole balancing for sensors &  Partially observable & Blackjack irl have to remember\\ \midrule
+            Stationary & Rubik, Blackjack, Pole balancing stationary &  Non-stationary & Pole balancing irl for friction and battery\\ \midrule
+            Single agent & Rubik, Blackjack, Pole balancing &  Multi agent & Chess if not against algorithm
+    \end{tabularx}
+    Two kinds of problems:
+    \begin{itemize}
+        \item \textbf{Prediction}: given a specific behaviour (policy) in each situation, estimate the expected long-term reward starting from a specific state.\\
+        \textbf{Don't decide the strategy, given specific policy in each situation}.\\
+        We don't know how good it is, so in prediction is estimating \textbf{how much reward}.
+        \item \textbf{Control}: learn the \textbf{optimal behaviour} to follow in order to maximize the expected long-term reward provided by the underlying process.\\
+        Decide the strategy, try to increase long-term reward.
+    \end{itemize}
+\subsection{Definition}
+    Markov assumption: The future is independent of the past given the present, the present contains all you need to predict future, can forget past (e.g. Rubik).\\
+    Markovian process is \textbf{stochastic}, value at t+1 depends only on t\\
+    A stochastic process $X_t$ is said to be Markovian if and only if
+    $$\mathbb{P}(X_{t+1}=j|X_t=i,X_{t-1}=k_{t-1},\cdots,X_1=k_1,X_0=k_0)=\mathbb{P}(X_{t+1}=j|X_t=i)$$
+    A Markovian process is \textbf{stationary} if the probabilities are all the same, not depending on when but only on the value/transition. If probabilities are stationary (time invarianat) we can write:
+    $$p_{ij}=\mathbb{P}(X_{t+1}=j|X_t=i)=\mathbb{P}(X_1=j|X_0=i)$$
+    A Markov process is a tuple $\langle S,A,P,R,\gamma,\mu\rangle$
+    \begin{itemize}
+        \item $S$ is a (finite) set of states
+        \item $A$ is a (finite) set of actions
+        \item $P$ is a state transition probability matrix $P(s'|s,a)$, probability of reaching $s$ given that we start from $s'$ through action $a$, depends only on present and not on past as Markovian
+        \item $R$ is a reward function $R(s,a)=\mathbb{E}[r|s,a]$, Markovian, depends only on current state and currenct action
+        \item $\gamma$ is a discount factor $\in [0,1]$, how much future rewards are important, if 0 means only interested in now, if 1 future very important: parameter of problem, not of algorithm
+        \item a set of initial probabilities $\mu_i^0=P(X_0=i)$ for all $i$
+    \end{itemize}
+
+
+\subsubsection{Time horizon}
+    Goal: maximizing accumulation of reward. We have to consider the time horizon that can be:
+    \begin{itemize}
+        \item Finite: I know how many decisions I can take before end of game, fixed number → while taking actions, horizon decreases. The way I choose the action depends on how many remains, decision policy influenced by the time, non-stationary
+        \item Indefinite: until some stopping criteria is met (absorbing states), maybe in finite \#steps, but not fixed → sooner or later terminate
+        \item Infinite: never ending
+    \end{itemize}
+\subsubsection{Cumulative reward and return}
+    $V=$return, sum of reward
+    \begin{itemize}
+        \item Total reward: $$V=\sum_{i=1}^\infty r_i$$ Finite and indefinite ok, infinite no as divergence of summation
+        \item Average reward: $$\lim_{n\rightarrow\infty}\frac{r_1+\cdots+r_n}{n}$$
+        \item Discounted reward: $$V=\sum_{i=1}^\infty \gamma^{i-1}r_i$$ as $\gamma \in [0,1)$ this always converges, UB is $\frac{r_{max}}{1-\gamma}$
+    \end{itemize}
+    The return $v_t$ is the total discounted reward from time-step t:
+    $$v_t=r_{t+1}+\gamma r_{t+2}+\cdots=\sum_{k=0}^\infty \gamma^{k}r_{t+k+1}$$
+    Immediate reward vs delayed reward:
+    \begin{itemize}
+        \item $\gamma$ close to 0 leads to \textbf{myopic} evaluation
+        \item $\gamma$ close to 1 leads to \textbf{far-sighted} evaluation
+    \end{itemize}
+    The discount factor $\gamma$:
+    \begin{itemize}
+        \item Can be interpreted as how much we value immediate rewards w.r.t. future ones
+        \item In an infinite time horizon MDP we should avoid $\gamma=1$ otherwise we are not discounting rewards gained in the future which may lead to produce infinite cumulated rewards
+        \item If finite time horizon, it is reasonable to not discount the rewards
+        \item Can also be interpreted as the probability that the process will go on, probability for an episode to \textbf{terminate} at each step. If $\gamma=0.9$, I have 10\% that I will not take the action
+        \item It is \textbf{not an hyper-parameter for the policy learning algorithm}, it is a \textbf{parameter of the MDP} we are considering and it is conceptually \textbf{related to the problem we are facing and not to the learner}
+        \item Different values for $\gamma$ may correspond to different optimal policies for the MDP. By changing the policy we are able to compute the values of the states with different strategies (myopic or far-sighted)
+    \end{itemize}
+
+\subsubsection{Policies}
+    They can be
+    \begin{tabularx}{\linewidth}{X|X}
+        \toprule
+        \textbf{Policy 1 (simpler)} & \textbf{$\subseteq$ Policy 2 (more complex)} \\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{Policy 1 (simpler)} & \textbf{$\subseteq$ Policy 2 (more complex)} \\
+        \midrule
+        \endhead
+        \midrule
+        \footnotesize [Continues on next page]
+        \endfoot
+        \bottomrule
+        \endlastfoot
+            % body
+            \textbf{Markovian}: determines action only by looking at the current state & \textbf{History-dependent}: look at previous states\\ \midrule
+            \textbf{Deterministic}: when in a state always same action & \textbf{Stochastic}: randomization in action\\ \midrule
+            \textbf{Stationary}: MDP policies depend on current state & \textbf{Non-stationary}
+    \end{tabularx}
+    But for any Markovian decision process (not multi-agent nor partially observable) there exists always a solution that is Markovian, deterministic and stationary → \textbf{as all solutions optimal, there is no best solution, just enough to solve simplest}.
+
+\subsection{Stationary Stochastic Markovian policies}
+    A policy $\pi$ is a distribution over actions given the state:
+    $$\pi(a|s)=\mathbb{P}[a|s]$$
+    MDP policies depend on current state: stationary
+    \begin{itemize}
+        \item The state sequence $s_1,s_2,\cdots$ is a Markov process $\langle S,P^{\pi},\mu\rangle$
+        \item The state and reward requence $s_1,r_2,s_2,\cdots$ is a Markov reward process $\langle S,P^{\pi},R^{\pi},\gamma,\mu\rangle$ where
+        $$P^{\pi}=\sum_{a\in A}\pi(a|s)P(s'|s,a)$$
+        $$R^{\pi}=\sum_{a\in A}\pi(a|s)R(s,a)$$
+        $P^{\pi}$ is the probability of reaching state s\_col starting from state s\_row in one step following policy $\pi$, it's a matrix.\\
+        If we fix the policy, the action disappears
+    \end{itemize}
+\subsubsection{Value functions}
+    The \textbf{state-value} function $V^{\pi}(s)$ of an MDP is the expected \textbf{return} starting from state s and following policy $\pi$
+    $$V^{\pi}(s)=\mathbb{E}_{\pi}[v_t|s_t=s]$$
+    $v_t$ is the return, sum of rewards.\\
+    For control purposes, rather than the value of each state, it is easier to consider the value of each \textbf{action} in each state:\\
+    The \textbf{action-value} function $Q^{\pi}(s,a)$ is the expected return from state s, \textbf{taking action a}, and then following policy $\pi$
+    $$Q^{\pi}(s,a)=\mathbb{E}[v_t|s_t=s,a_t=a]$$
+    And we have
+    $$V^\pi(s)=\sum_{a \in A}\pi(a|s)Q^\pi(s,a)$$
+\subsubsection{Bellman expectation equation and Bellman operator}
+    \textbf{$V^\pi$ Bellman expectation equation and operator}\\
+    We can decompose the state-value function into immediate reward plus discounted value of successor state
+    $$V^\pi=\sum_{a \in A}\pi(a|s)\left(R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V^\pi(s')\right)$$
+    Substituting with $P^\pi$ and $R^\pi$:
+    $$V^\pi=R^\pi+\gamma P^\pi V^\pi$$
+    $$Nx1=Nx1+scalar*NxM\,Mx1$$
+    $$V^\pi=(I-\gamma P^\pi)^{-1}R^\pi$$
+    If $\gamma$ is 1, the matrix is not invertible. Computational cost: cubic in number of states.\\
+    The Bellman operator for $V^\pi$ is defined as $T^\pi:\mathbb{R}^{|S|}\rightarrow\mathbb{R}^{|S|}$ (maps the value functions to value functions):
+    $$(T^\pi V^\pi)(s)=\sum_{a \in A}\pi(a|s)\left(R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V^\pi(s')\right)$$
+    \begin{itemize}
+        \item Using the Bellman operator, the Bellman expectation equation can be written as:
+        $$T^\pi V^\pi=V^\pi$$
+        \item $V^\pi$ is a \textbf{fixed point} of the Bellman operator $T^\pi$, and it's the only one, for any other point we get another point
+        \item This is a linear equation in $V^\pi$ and $T^\pi$
+        \item If $0 < \gamma < 1$ then $T^\pi$ is a contraction w.r.t. the maximum norm, contractor, new point always closer to $V^\pi$, applying continuously will converge, speed depends on $\gamma$, larger it is, longer it takes (if 0 reaches immediately)
+        \item \textbf{Quadratic complexity in \#states}, if cardinality of states high not always good choice using solution to Bellman expectation operator to compute the value function for an MDP
+    \end{itemize}
+    \textbf{$Q^\pi$ Bellman expectation equation and operator}\\
+    Decompose similarly for $Q^\pi$
+    $$Q^\pi(s,a)=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)\sum_{a' \in A}\pi(a'|s')Q^\pi(s',a')$$
+    $$Q^\pi(s,a)=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^\pi(s')$$
+    The Bellman operator for $Q^\pi$ is defined as $T^\pi:\mathbb{R}^{|S|x|A|}\rightarrow\mathbb{R}^{|S|x|A|}$ (maps the action-value functions to action-value functions):
+    $$(T^\pi V^\pi)(s,a)=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)\sum_{a' \in A}\pi(a'|s')Q^\pi(s',a')$$
+    \begin{itemize}
+        \item Using the Bellman operator, the Bellman expectation equation can be written as:
+        $$T^\pi Q^\pi=Q^\pi$$
+        \item $Q^\pi$ is a \textbf{fixed point} of the Bellman operator $T^\pi$, and it's the only one, for any other point we get another point
+        \item This is a linear equation in $Q^\pi$ and $T^\pi$
+        \item If $0 < \gamma < 1$ then $T^\pi$ is a contraction w.r.t. the maximum norm
+        \item \textbf{Quadratic complexity in \#states}, if cardinality of states high not always good choice using solution to Bellman expectation operator to compute the value function for an MDP
+    \end{itemize}
+    Consider the iterative use of the Bellman expectation operator and the exact solution using the Bellman expectation equation: iterative vs closed-form, not sure of \#iterations I have to do, not true that iterative use less expensive than computing exact solution. Also, if I want exact solution I might need more computational power.\\
+    Use the
+    \begin{itemize}
+        \item \textbf{Recursive equation} when the state space is too large (e.g. chess)
+        \item \textbf{Exact solution} when the state space is small enough (e.g. cleaning robot problem, tic-tac-toe)
+        \item \textbf{None} when we have no information about the state we are in (e.g. maze)
+    \end{itemize}
+\subsubsection{Optimal value functions}
+    The optimal state-value function $V^*(s)$ is the maximum value function over all policies
+    $$V^*(s)=\max_\pi V^\pi(s)$$
+    The optimal action-value function $Q^*(s,a)$ is the maximum action-value function over all policies
+    $$Q^*(s,a)=\max_\pi Q^\pi(s,a)$$
+    \begin{itemize}
+        \item The optimal value function specifies the best possible performance in the MDP
+        \item An MDP is solved when we know the optimal value function
+        \item The optimal policy will achieve optimal value from every state
+        \item We have $|A|^{|S|}$ possible Markovian, deterministic, stationary policies, exponential, cannot compute them all
+    \end{itemize}
+    A partial ordering over the policies:
+    \begin{center}
+        $\pi \geq \pi'$ if $V^\pi(s) \geq V^{\pi'}(s)$, $\forall s \in S$        
+    \end{center}
+    For any MDP:
+    \begin{itemize}
+        \item There exists an optimal policy $\pi^*$ that is better than or equal to all other policies, $\pi^* \geq \pi$, $\forall \pi$
+        \item All optimal policies achieve the optimal value function $V^{\pi^*}(s)=V^*(s)$
+        \item All optimal policies achieve the optimal action-value function $Q^{\pi^*}(s,a)=Q^*(s,a)$
+        \item There is always a deterministic optimal policy for any MDP, one can be found maximizing over $Q^*(s,a)$:
+        $$
+        \pi^*(a|s)=
+            \begin{cases}
+                1\,if\,a=arg \max_{a\in A}Q^*(s,a)\\
+                0\,otherwise
+            \end{cases}
+        $$
+    \end{itemize}
+\subsubsection{Bellman optimality equation and Bellman optimality operator}
+    \textbf{$V^\pi$ Bellman optimality equation and optimality operator}
+    $$V^*(s)=\max_aQ^*(s,a)=\max_a\left\{R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^*(s')\right\}$$
+    Before linear, now not linear and we don't have closed form solution. To compute the optimal use the operator:\\
+    The Bellman optimality operator fo $V^*$ is defined as $T^*:\mathbb{R}^{|S|}\rightarrow\mathbb{R}^{|S|}$ (maps value functions to value functions):
+    $$(T^*V^*)(s)=\max_aQ^*(s,a)=\max_a\left\{R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^*(s')\right\}$$
+    \textbf{$Q^\pi$ Bellman optimality equation and optimality operator}
+    $$Q^*(s,a)=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^*(s')=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)\max_{a'}Q^*(s',a')$$
+    The Bellman optimality operator fo $Q^*$ is defined as $T^*:\mathbb{R}^{|S|x|A|}\rightarrow\mathbb{R}^{|S|x|A|}$ (maps action-value functions to action-value functions):
+    $$(T^*Q^*)(s,a)=R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)\max_{a'}Q^*(s',a')$$
+    The optimality operator:
+    \begin{itemize}
+        \item Monotonicity
+        \item Max-Norm contraction, which guarantees convergence
+        \item $V^\pi$ is the unique fixed point for $T^\pi$
+        \item $V^*$ is the unique fixed point for $T^*$
+        \item \textbf{Non-linear, no closed form solution}
+        \item Applying for example 10 times to a generic value function $V_0$ guarantees that
+        $$||V^*-T^{10}V_0||_\infty\leq\gamma^{10}||V^*-V_0||_\infty$$
+        it is a contraction operator, contraction factor is $\gamma$
+    \end{itemize}
+
+\subsection{Solving MDP}
+\subsubsection{Brute force}
+    Solving a MDP means finding an optimal policy, we could enumerate all deterministic Markov policies, evaluate each of them and return the best one, but number of policies exponential $|A|^{|S|}$.
+\subsubsection{Dynamic programming}
+    Has two properties:
+    \begin{enumerate}
+        \item Optimal substructure, principle of optimality applies and optimal solution can be decomposed into subproblems
+        \item Overlapping subproblems, subproblems recur many times, solutions can be cached and reused
+    \end{enumerate}
+    MDPs satisfy both properties, Bellman equation gives recursive decomposition and Value function stores and reuses solutions\\
+    DP assumes \textbf{full knowledge} of the MDP
+    \begin{tabularx}{\linewidth}{X X X X}
+        \toprule
+        \textbf{Problem} & \textbf{Input$\rightarrow$Output} & \textbf{Bellman equation} & \textbf{Algorithm}\\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{Problem} & \textbf{Input$\rightarrow$Output} & \textbf{Bellman equation} & \textbf{Algorithm}\\
+        \midrule
+        \endhead
+        \midrule
+        \footnotesize [Continues on next page]
+        \endfoot
+        \bottomrule
+        \endlastfoot
+        \multirow{1}{*}{\textbf{Prediction}} & $\left(MDP,\pi\right)\rightarrow V^\pi$ & Bellman expectation equation & Policy evaluation (iterative) \\ \midrule
+        \multirow{2}{*}{\textbf{Control}}   & $MDP\rightarrow\left(V^*,\pi^*\right)$ & Bellman expectation equation+greedy & Policy iteration \\ \cmidrule{3-4}
+                                            & & Bellman optimality equation & Value iteration
+    \end{tabularx}
+    \begin{itemize}
+        \item Algorithms are based on \textbf{state-value functions} $V^\pi(s)$ or $V^*(s)$. Complexity $O(mn^2)$ per iteration, for $m$ actions and $n$ states
+        \item Could also apply to \textbf{action-value function} $Q^\pi(s,a)$ or $Q^*(s,a)$. Complexity $O(m^2n^2)$ per iteration 
+        \item \textbf{Bootstrapping but no sampling}
+    \end{itemize}
+\subsubsection{Linear Programming: Infinite-Horizon}
+    We can reformulate in LP to find $V^*$. At value iteration convergence we have:
+    $$V^*(s)=\max_aQ^*(s,a)=\max_a\left\{R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^*(s')\right\}$$
+    For LP:
+    \begin{itemize}
+        \item
+        $$
+        \begin{cases}
+            \min_V\sum_{s \in S}\mu(s)V(s)\\
+            \vspace{0.1em}\\
+            s.t.\,\,V(s)\geq R(s,a)+\sum_{s'\in S}P(s'|s,a)V(s'),\,\,\forall s \in S,\,\,\forall a \in A
+        \end{cases}
+        $$
+        \item $|S|$ variables
+        \item $|S||A|$ constraints
+        \item $\mu$ initial state probability
+        \item Not really used, still better than brute force
+    \end{itemize}
+\subsection{DP: Finite-Horizon}
+    In finite-horizon the policy is not stationary, policy according to how many steps left in the game.\\
+    We put ourselves at the last step, so we simply maximize reward, then 1 step before...\\\textbf{Backward induction}:
+    \begin{itemize}
+        \item \textbf{Backward recursion}
+        $$V^*_k(s)=\max_{a\in A_k}\left\{R_k(s,a)+\sum_{s'\in S_{k+1}}P_k(s'|s,a)V^*_{k+1}(s')\right\},\,k=N-1,\cdots,0$$
+        \item  \textbf{Optimal policy}
+        $$\pi^*_k(s)\in arg\max_{a\in A_k}\left\{R_k(s,a)+\sum_{s'\in S_{k+1}}P_k(s'|s,a)V^*_{k+1}(s')\right\},\,k=N-1,\cdots,0$$
+    \end{itemize}
+    With cost of $N|S||A|$ vs $|A|^{N|S|}$ of brute force, where $N$ steps, $A$ actions, $S$ states
+
+\subsection{DP: Infinite-Horizon Discounted MDPs}
+    \begin{itemize}
+        \item \textbf{Policy Iteration}: iteratively evaluate the current policy and update it in the greedy direction
+        \item \textbf{Value Iteration}: iteratively apply the Bellman optimality equation in its recursive form
+    \end{itemize}
+\subsubsection{Policy iteration}
+    \begin{enumerate}
+        \item Start from initial policy, first step \textbf{prediction} problem: compute value function either with closed form or iterative with Bellman (look at Bellman expectation equation for $V^\pi$):
+        $$V^\pi=\sum_{a \in A}\pi(a|s)\left(R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V^\pi(s')\right)$$
+        $$V^\pi=R^\pi+\gamma P^\pi V^\pi$$
+        \item \textbf{Policy iteration}, produce new policy, the \textbf{greedy policy}, greedy w.r.t. value function $V^\pi$. Can I improve the value function assuming it is correct? I there a more promising action?
+        \begin{itemize}
+            \item Iterative application of Bellman expectation backup
+            $$V_0\rightarrow V_1\rightarrow \cdots \rightarrow V_k \rightarrow V_{k+1} \rightarrow \cdots \rightarrow V^\pi$$
+            \item A full policy-evalutation backup:
+            $$V_{k+1}\leftarrow\sum_{a \in A}\pi(a|s)\left(R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V_k^\pi(s')\right)$$
+            \item A sweep consists of applying a backup operation to each state
+            \item Using \textbf{synchronous} backups, at each iteration $k+1$ for all states $s \in S$ update $V_{k+1}$ from $V_k(s')$
+        \end{itemize}
+        It happens sooner or later to reach policy of fixed point, at each step we are shaping model, greedy function depends only on shape and not on values!
+        \item \textbf{Policy improvement}, consider a \textbf{deterministic policy} $\pi$, for a given state $s$, would it be better to do an action $a\neq\pi(s)$? We can improve the policy by acting greedily
+        $$\pi'(s)=\arg\max_{a \in A}Q^\pi(s,a)$$
+        This improves the value from \textbf{any} state $s$ over one step, the value function with new greedy policy is better than previous value function with previous policy:
+        $$Q^\pi(s,\pi'(s))=\max_{a \in A}Q^\pi(s,a) \geq Q^\pi(s,\pi(s))=V^\pi(s)$$
+        The greedy operator produces policy that cannot be worse.
+        \item When reaching fixed point (optimal value function), optimal policy cannot improve anymore due to Bellman optimality operator: we reached $V^{\pi'}=V^\pi$
+        $$Q^\pi(s,\pi'(s))=\max_{a \in A}Q^\pi(s,a) = Q^\pi(s,\pi(s))=V^\pi(s)$$
+        As this is the Bellman optimality equation:
+        $$V^\pi(s)=V^{\pi'}(s)=V^*(s)\,\,\,\,\,\,\,\,\,\forall\,s \in S$$
+        So $\pi$ is an optimal policy\\
+        This is the exact optimal value function, not approximation. Not closed form, iterative approach\\
+        \#policy iterations finite, thanks to Bellman operator properties and since at each step excluding some policies (\#policies finite)\\
+        In worst case \#iterations = \#policies, but this does not happen, it happens it is polinomial!\\
+        The cost of each iteration is high
+    \end{enumerate}
+    In summary, for \textbf{control}:
+    
+    \fbox{\begin{minipage}{\linewidth}
+        We want to to solve the following problem:
+        $$V^*(s)=\max_{a\in A}\left\{
+            R(s,a)+\gamma\sum_{s'\in S}P(s'|a,s)V^*(s')
+        \right\}$$
+        Decouple the process into
+        \begin{itemize}
+            \item \textbf{Policy evaluation}: where we compute the value $V^\pi$ of the given policy
+            \item \textbf{Policy improvement}: where we change the policy from $\pi$ to $\pi'$ to the newly estimated values (greedy improvement)
+            $$a'(s)=\arg\max_{a\in A}Q^\pi(s,a)=\arg\max_{a\in A}\left\{
+                R(s,a)+\gamma\sum_{s'\in S}P(s'|a,s)V^*(s')
+            \right\}\hspace{1em}\forall s\in S$$
+        \end{itemize}
+    \end{minipage}}
+    
+\subsubsection{Value Iteration}
+    Find optimal policy $\pi$, instead of iterating between policy evaluations and improvements, let us try to evaluate the optimal policy directly (i.e. to compute $V^*(s)$) by repeatedly applying the Bellman optimality equation on the current value function $V_k(s)$
+    $$V_{k+1}(s)\leftarrow\max_{a\in A}\left\{R(s,a)+\gamma\sum_{s'\in S}P(s'|s,a)V_k(s')\right\}$$
+    \begin{itemize}
+        \item Iterative application of Bellman optimality backup
+        $$V_1\rightarrow V_2\rightarrow \cdots \rightarrow V^*$$
+        \item Using \textbf{synchronous} backups, at each iteration $k+1$ for all states $s \in S$ update $V_{k+1}$ from $V_k(s')$
+        \item Unlike policy iteration, there is \textbf{no explicit policy}
+        \item Itermediate value functions may not correspond to any policy
+    \end{itemize}
+    Value Iteration converges to the optimal state-value function
+    $$\lim_{k\rightarrow \infty}V_k=V^*$$
+    The value iteration approach uses the Bellman optimality operator recursively to converge to $V^*(s)$, hence obtaining an approximation of it.\\
+    Define the max-norm $||V||_\infty=\max_s|V(s)|$, the approximation error can be defined as:
+    $$||V_{i+1}-V_i||_\infty<\epsilon\implies ||V_{i+1}-V^*||_\infty<\frac{2\epsilon\gamma}{1-\gamma}$$
+    If $\epsilon$ small, $V^*$ not too far. For $\gamma$ closer to 1, must regulate $\epsilon$\\
+    At the end, we converge to the Bellman optimality equation:
+    $$V^*(s)=\max_aQ^*(s,a)=\max_a\left\{R(s,a)+\gamma\sum_{s' \in S}P(s'|s,a)V^*(s')\right\}$$
+    \textbf{Due to policy improvement theorem}, we are guaranteed that at every step the new policy is \textbf{not worse} than the previous one.\\
+    One of the properties of such operator is that if we apply it infinite times, we eventually converge to the optimal function. Once we have the optimal state-value function, we can find the optimal policy through a greedy approach for example. \\
+    It is to be noted that we cannot apply the operator infinite times in a real case scenario, and for intermediate result of the value iteration algorithm there might not be corresponding policies, hence depending on when the approximation stops we might have or not the optimal policy.
+
+\subsection{Main Points}
+    \begin{itemize}
+        \item In classical ML shuffling the data does not change the dataset, but here \textbf{shuffling} the data/pairs of state-action will result in different MDPs, \textbf{temporal state important, cannot take into account state-action pairs one by one}
+        \item An action you take on an MDP might influence the future rewards you gained
+        \item A state considered by the agent on an MDP is not always equal to the environment state: \textbf{not one to one mapping between MDP states and reality states}, if something not observable or not useful we have no state, also if complex model we model a simpler subset
+        \item Policies applied to an MDP are influenced by other learning processes ongoing on the considered MDP: e.g. playing against an opponent with fixed policy no good, must react, \textbf{multi-agent reinforcement learning}
+        \item For each MDP we are guaranteed that there is always \textbf{at least one optimal policy (that is Markovian, deterministic and stationary)}, more optimal policies can also be possible: \textbf{but all optimal policies share the same unique value function}, as the optimal value function is the unique fixed point of the Bellman optimality operator
+        \item In a \textbf{finite state} MDP we just need to look for \textbf{Markovian, stationary and deterministic optimal policies}, we are guaranteed that at least one optimal Markovian, deterministic and stationary policy exists
+        \item In a \textbf{finite time} MDP we should consider non-stationary optimal policies, the optimal action might be influenced by the number of rounds remaining
+        \item The results of \textbf{coupling a specific policy and an MDP is a Markov process}, once you fix the policy there is no need of deciding anything else and the succession of the states becomes a Markovian process
+        \item Only if the environment is \textbf{fully observable and Markovian} we can model a problem as MDP, so not all the sequential decision problems can be modeled as MDPs
+        \item We can model classification problems as sequential decision making problems, but using MDP makes no sense as there is no temporal dependence over the predictions
+    \end{itemize}

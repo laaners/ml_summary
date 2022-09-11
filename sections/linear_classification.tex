@@ -1,0 +1,250 @@
+% !TeX root = ../main.tex
+
+\section{Linear Classification}
+    Discrete values instead of continuous like regression, the goal is to assign an input $x$ into one of the $K$ discrete classes $C_k,\,k=1,\cdots,K$, typically each input assigned only to one class. We can use \textbf{linear models} for classification:
+    \begin{itemize}
+        \item In linear classification, the input space is divided into $K$ decision regions whose boundaries are called \textbf{decision boundaries or decision surfaces}
+        \item While regression linear in parameters, here we need to predict the discret class labels or posterior probabilities in (0,1), so we use a \textbf{non-linear function}, separate points through planes
+        $$y(x,w)=f(x^Tw+w_0)=k$$
+        $$f^{-1}(k)=x^Tw+w_0$$
+        \begin{itemize}
+            \item The decision surfaces correspond to $y(x,w)=cost$
+            \item $x^Tw+w_0$ linear, \textbf{decision surfaces are linear} functions of x, even if the activation function is non-linear
+            \item \textbf{No longer linear in paramters}
+        \end{itemize}
+        \item Target variable $t$ is a Kx1 vector (e.g. an input of class 2 if $K=5$ corresponds to target vector $t=(0,1,0,0,0)^T$, where values can be interpreted as class probabilities)
+    \end{itemize}
+    \textbf{Approaches (parametric)}:
+    \begin{itemize}
+        \item \textbf{Discriminant function/direct approach}, build a function that \textbf{directly maps} each input to class
+        \begin{itemize}
+            \item Least squares (multiple classes)
+            \item Perceptron (two classes)
+        \end{itemize}
+        \item \textbf{Probabilistic discriminative approach}, model a conditional probability $P(C_k|x)$ directly, for instance using parametric models
+        \begin{itemize}
+            \item Logistic regression (two classes and multiple classes)
+            \item K-nearest neightbor (\textbf{non-parametric})
+        \end{itemize}
+        \item \textbf{Probabilistic generative approach}, model class conditional density/likelihood $P(x|C_k)$ with prior $P(C_k)$ for the classes and then infer the posterior $P(C_k|x)$ with the \textbf{Bayes' rule}
+        \begin{itemize}
+            \item Naive Bayes, parametric and frequentist, \textbf{not Bayesian}
+        \end{itemize}
+    \end{itemize}
+
+\subsection{Discriminant function/direct approach}
+    Consider a \textbf{two classes} case
+    $$y(x)=x^Tw+w_0$$
+    \begin{itemize}
+        \item Assign $x$ to $C_1$ if $y(x)\geq 0$ and to class $C_2$ otherwise
+        \item Decision boundary: $y(x)=0$
+        \item Given two points on the decision boundary/surface:
+        $$y(x_A)=y(x_B)=0$$
+        $$w^T(x_A-x_B)=0$$
+        \item $w$ \textbf{is orthogonal to the decision surface}
+        \item $w_0$ \textbf{determines the location/position of the decision surface}
+        \item If $x$ is on the decision surface, then
+        $$\frac{w^Tx}{||w||_2}=-\frac{w_0}{||w||_2}$$
+    \end{itemize}
+    Now consider a \textbf{multiple classes} setting, use $K$ \textbf{linear discriminant functions} of the form
+    $$y_k(x)=x^Tw_k+w_{k0}\hspace{2em}k=1,\cdots,K$$
+    \begin{itemize}
+        \item Assign $x$ to $C_k$ if $y_k(x)\geq y_j(x),\,\forall j\neq k$
+        \item The resulting decition boundaries are \textbf{singly connected and convex}
+        \item Given two points that lie inside the region $R_k$
+        $$y_k(x_A)>y_j(x_A)\,and\,y_k(x_B)>y_j(x_B)$$
+        Implies that for positive $\alpha$
+        $$y_k(\alpha x_A+(1-\alpha)x_B)>y_j(\alpha x_A+(1-\alpha)x_B)$$
+        \item $K$ binary classifiers or one-versus-all
+    \end{itemize}
+\subsubsection{Least squares}
+    Using vector notation:
+    $$y(x)=\tilde{W}^T\tilde{x}$$
+    \begin{itemize}
+        \item $\tilde{W}$ is a DxK matrix whose $k$-th column is $\tilde{w}_k=(w_{k0},w_k^T)^T$
+        $$
+        \begin{pmatrix}
+            \cdots & w_{k0}\\
+            \cdots & w_{k1}\\
+            & \vdots\\
+            \cdots & w_{kD}\\
+        \end{pmatrix}
+        $$
+        \item $\tilde{x}=(1,x^T)^T$ Dx1
+    \end{itemize}
+    Given a dataset $D=\{x_i,t_i\}\hspace{0.5em}i=1,\cdots,N$, from least squares we know how to minimize:
+    $$\tilde{W}=(\tilde{X}^T\tilde{X})^{-1}\tilde{X}^TT$$
+    \begin{itemize}
+        \item $\tilde{X}$ is a NxD matrix whose $i$-th row is $\tilde{x}_i^T$
+        \item $T$ is a NxK matrix whose $i$-th row is $t_i^T$
+    \end{itemize}
+    A new input is assigned to a class for which $t_k=\tilde{x}^T\tilde{w}_k$ is \textbf{largest}.\\
+    \textbf{Problems} of using least squares for classification:
+    \begin{itemize}
+        \item \textbf{Outliers}, least squares is highly sensitive to outliers, unlike logistic regression
+        \item \textbf{Non-Gaussian distributions}, we assumed \textbf{Gaussian condition distribution}, if not satisfied by binary target vectors we fail
+    \end{itemize}
+\subsubsection{Perceptron}
+    The loss function is the \textbf{number of missclassified points}, if this number is zero I solved the problem. The Perceptron is another example of linear discriminant models, it corresponds to a \textbf{two-class model}
+    $$
+    y(x)=f(w^T\phi(x)),\hspace{0.2em}where\hspace{0.2em}f(a)=
+    \begin{cases}
+        +1,\hspace{0.2em}a\geq 0\\
+        -1,\hspace{0.2em}a<0
+    \end{cases}
+    $$
+    \begin{itemize}
+        \item Target values are +1 for $C_1$ and -1 for $C_2$
+        \item The algorithm finds the \textbf{separating hyperplane} by minimizing the \textbf{distance of missclassified points to the decision boundary}
+        \item Using the number of missclassified points as loss function \textbf{is not effective} since it is a \textbf{piecewise constant function}
+    \end{itemize}
+    The loss function to be minimize is
+    $$L_P(w)=-\sum_{n\in M}w^T\phi(x_n)t_n$$
+    Where $M$ is the set of missclassified points, $w^T\phi(x_n)$ is the equation of a plane, solving with $x_n$ results in 0 if point in plane, not 0 otherwise.\\
+    \textbf{Online method to optimize loss}, can minimize with \textbf{stochastic gradient descent}
+    $$w^{(k+1)}=w^{(k)}-\alpha\nabla L_P(w)=w^{(k)}+\alpha\phi(x_n)t_n$$
+    Since the Perceptron function does not change if $w$ is multiplied by a positive constant, \textbf{the learning rate $\alpha>0$ can be set to 1}.
+    
+    The algorithm:
+
+    \fbox{\begin{minipage}{\linewidth}
+        \begin{addmargin}[0em]{0em}
+            \textbf{Input}: dataset $x_n\in\mathbb{R}^D$\\
+            $t_n\in\{-1,+1\}$, for $n=1:N$\\
+            Initialize $w_0$\\
+            $k\leftarrow 0$\\
+            \textbf{repeat}
+            \begin{addmargin}[1em]{0em}
+                $k\leftarrow k+1$\\
+                $n\leftarrow k$ mode $N$\\
+                \textbf{if} $\hat{t}_n\neq t_n$ \textbf{then}
+                \begin{addmargin}[1em]{0em}
+                    $w_{k+1}\leftarrow w_k+\phi(x_n)t_n$
+                \end{addmargin}
+                \textbf{end if}
+            \end{addmargin}
+            \textbf{until} convergence
+        \end{addmargin}    
+    \end{minipage}}
+    
+    \textbf{Performance indexes}, the confusion matrix:
+    \begin{tabularx}{\linewidth}{X|X|X}
+        \toprule
+        \textbf{} & \textbf{Actual Class: 1} & \textbf{Actual Class: 0}\\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{} & \textbf{Actual Class: 1} & \textbf{Actual Class: 0}\\
+        \midrule
+        \endhead
+        \footnotesize [Continues on next page]
+        \endfoot
+        \bottomrule
+        \endlastfoot
+        %body
+        \textbf{Predicted Class: 1} & $t_p$ & $f_p$\\ \midrule
+        \textbf{Predicted Class: 0} & $f_n$ & $t_n$
+    \end{tabularx}
+    False and true positives/negatives, $N=t_p+t_n+f_p+f_n$
+    \begin{itemize}
+        \item \textbf{Accuracy}, proportion of points classified/all points
+        $$Acc=\frac{t_p+t_n}{N}$$
+        Not reliable when:
+        \begin{itemize}
+            \item Data is unbalanced
+            \item When the importance of wrongly predicting positive-class sampels is different from wrongly predicting negative-class samples
+        \end{itemize}
+        \item \textbf{Precision}, amount of \textbf{true positives} with respect to the total amount of points classified as positive: how many selected items are relevant?
+        $$Pre=\frac{t_p}{t_p+f_p}$$
+        \item \textbf{Recall}, how many points in positive class are correctly classified? How many relevant items are selected?
+        $$Rec=\frac{t_p}{t_p+f_n}$$
+        \item \textbf{F1 score}, close to 1 good, close to 0 poor classifier
+        $$F1=2\,\frac{Pre*Rec}{Pre+Rec}$$
+    \end{itemize}
+    Perceptron main points:
+    \begin{itemize}
+        \item \textbf{Semi-decidable problem}, if the points are not linearly separable the algorithm never stops/converges: if the training data is \textbf{linearly separable} in the feature space $\Phi$ then the Perceptron learning algorithm is guaranteed to find an \textbf{exact solution} in a \textbf{finite number of steps}
+        \item The effect of a single update is to \textbf{reduce the error} due to the \textbf{missclassified pattern}, but this \textbf{does not imply} that the loss is reduced at each stage
+        \item If \textbf{multiple solutions} exist, the one found \textbf{depends by the initialization of the parameters} and the \textbf{order of presentation} of data points (\textbf{oline training}, must \textbf{shuffle} data initially)
+    \end{itemize}
+
+\subsection{Probabilistic Discriminative Approach}
+\subsubsection{Logistic regression}
+    Consider \textbf{two-class} classification, the \textbf{posterior} probability of class $C_1$ can be written as \textbf{logistic sigmoid function}:
+    $$p(C_1|\phi)=\frac{1}{1+exp(-w^T\phi)}=\sigma(w^T\phi)$$
+    Where $p(C_2|\phi)=1-p(C_1|\phi)$ and the bias term is omitted for clarity. This model is known as logistic regression, and \textbf{differently from generative models} here we model $p(C_k|\phi)$ directly.\\
+    What are the weights $w$ that maximize the likelihood (probability of observing target value $t$ given input data and parameters) of my data given my model? \textbf{Maxmimum likelihood}
+    $$p(t|X,w)=\prod_{n=1}^Ny_n^{t_n}(1-y_n)^{1-t_n},\hspace{1em}y_n=\sigma(w^T\phi_n)$$
+    Where $t_n$ is the true probability, 1 if the point is in $C_1$ and 0 otherwise.
+
+    Consider the \textbf{negative log-likelihood}, minimize it:
+    $$L(w)=-\ln p(t|X,w)=-\sum_{n=1}^N(t_n\ln y_n+(1-t_n)\ln(1-y_n))=\sum_{n=1}^N L_n$$
+    Compute the gradient and we get:
+    $$\nabla L(w)=\sum_{n=1}^N(y_n-t_n)\phi_n$$
+    \begin{itemize}
+        \item It has the same form as the gradient of the \textbf{sum of squares error function} for linear regression
+        \item \textbf{No closed-form solution}, due to non-linearity of the logistic sigmoid function, so we have to use iterative method (gradient descent)
+        \item Error/loss function \textbf{convex} and can be optimized by standard \textbf{gradient-based optimization} techniques, can use \textbf{online gradient descent$\Rightarrow$at each step overall loss decreases}
+        \item Easy to adapt to the \textbf{online learning setting}
+    \end{itemize}
+    Consider now \textbf{multiple classes}
+    \begin{itemize}
+        \item We represent posterior probabilities by a softmax transformation of linear functions of feature variables
+        $$p(C_k|\phi)=y_k(\phi)=\frac{
+            exp(w_k^T\phi)
+        }{
+            \sum_j exp(w_j^T\phi)
+        }$$
+        \item Like before, compute likelihood
+        $$p(T|\Phi,w_1,\cdots,w_K)=\prod_{n=1}^N\left(
+            \prod_{k=1}^Kp(C_k|\phi_n)^{t_{nk}}
+        \right)=\prod_{n=1}^N\left(
+            \prod_{k=1}^Ky_{nk}^{t_{nk}}
+        \right)$$
+        Where $y_{nk}=p(C_k|\phi_n)=\frac{
+            exp(w_k^T\phi_n)
+        }{\sum_jexp(w_j^T\phi_n)}$
+        \item Apply negative log-likelihood and find gradient
+        $$\nabla L_{w_j}(w_1,\cdots,w_K)=\sum_{n=1}^N(y_{nj}-t_{nj})\phi_n$$
+    \end{itemize}
+    \textbf{Differently from perceptron}:
+    \begin{itemize}
+        \item Logistic regression will find best solution according to hypothesis space (the solution is the one that minimizes its convex loss function) \textbf{even if we cannot find separation plane/training set not linearly separable}, if the training set is not linearly separable, the provided weights would not correspond to a separating hyperplane
+        \item We will \textbf{solve outliers problem}
+        \item It is possible to determine the significance of the paramters learned by the model, where the paramters have significance for the log odds of the model, while for Perceptron it's false as it only provides a sharp \{0,1\} label
+    \end{itemize}
+\subsubsection{K-nearest neighbour}
+    Look at the nearby points to classify a new point, given a dataset $(x_n,t_n),\,\,\forall i\in\{1,\cdots,N\}$ and a new data point $x_q$ we decide the class as follows:
+    $$i_q=\arg\min_{n\in\{1,\cdots,N\}}||x_q-x_n||_2\hspace{1em}Prediction:\,\,\hat{t}_q=t_{i_q}$$
+    \textbf{Majority voting}, the more points of a class nearby then the new point in in that class. Definition of the method:
+    \begin{itemize}
+        \item Distance metric: \textbf{Euclidean}
+        \item How many neighbours: $K$, to \textbf{set it} use \textbf{cross validation}, average the error
+        \item Weight function: \textbf{equal weights}, points of different classes have even voting
+        \item How to fit with local points: \textbf{majority voting}, should choose an odd $K$ in order to avoid ties
+    \end{itemize}
+    \textbf{Discriminative non-parametric, no training in KNN, just evaluate the distance, need data even for predictions} (in parametric method the data is discarded once we have the parameters, in non-parametric data used even for predictions).
+
+\subsection{Probabilistic Generative Approach: Naive Bayes}
+    \textbf{Parametric, frequentist, generative}, it's \textbf{not Bayesian}.
+    \begin{itemize}
+        \item Hypothesis space:
+        $$y_n=y(x_n)=\arg\max_{k}p(C_k)\prod_{j=1}^Mp(x_j|C_k)$$
+        \item Loss measure: log likelihood
+        \item Optimization method: maximum likelihood estimation (MLE)
+    \end{itemize}
+    \textbf{Naive assumption}: each input is conditionally (w.r.t. the class) independent from each other
+    $$p(C_k|x)=\frac{p(C_k)p(x|C_k)}{p(x)}=\cdots=p(C_k)\prod_{j=1}^Mp(x_j|C_k)$$
+    Decision function: maximize the MAP probability:
+    $$y(x)=\arg\max_{k}p(C_k)\prod_{j=1}^Mp(x_j|C_k)$$
+    \begin{itemize}
+        \item Prior: $p(C_k)$, multinomial distribution with paramters $(p_1,\cdots,p_k)$, probability of class, trying to look at what are the chances to be in the $k$-th class I have
+        \item Data likelihood $p(x_j|C_k)\sim \mathcal{N}(\mu_{jk},\sigma^2_{jk})$, i.e. a normal distribution for each feature $x_j$ and each class $C_k$
+    \end{itemize}
+    We are able to \textbf{generate} dataset which resembles the original one:
+    \begin{itemize}
+        \item Select a class $C_{\hat{k}}$ according to prior multinomial distribution with parameters $\hat{p}(C_1),\cdots,\hat{p}(C_K)$
+        \item For each feature $j$, draw a sample $x_j$ from $\mathcal{N}(\hat{\mu}_{j\hat{k}},\hat{\sigma}^2_{j\hat{k}})$
+        \item Repeat every time you want a new sample
+    \end{itemize}
+    \textbf{With few data cannot generate new data, do not use generative with few data}.

@@ -1,0 +1,309 @@
+% !TeX root = ../main.tex
+
+\section{Multi-Armed Bandit}
+Specific RL setting
+\subsection{Exploration and Exploitation}
+We enter a newly opened brewery
+\begin{itemize}
+    \item We are allowed to chose among a set of available beers (one at a time)
+    \item After each beer you assign a mark from 1 to 10 according to how much you liked it
+    \item It might happen that the value you assign to a beer varies (e.g., different bottles might have slightly different tastes)
+\end{itemize}
+Your goal is twofold:
+\begin{itemize}
+    \item Find the beer you like the most
+    \item You do not want to get drunk in doing that (minimize the order of beers you do not like)
+\end{itemize}
+The main point is that we are not sure about the value of each action $Q(s|a)$. \textbf{Online} decision making make us face a fundamental choice:
+\begin{itemize}
+    \item \textbf{Exploration}: gather more information from unexplored/less explored options (try as many different beers as possible)
+    \item \textbf{Exploitation}: select the option we consider the best one so far (drink the ones that will lead me to the best I like)
+\end{itemize}
+\textbf{Time horizon}, depending on how much we are far-sighted we might make some sacrifice in the short-term to gain more in the future
+\begin{itemize}
+    \item Infinite time-horizon: gather enough information to find the best overall decision
+    \item Finite time-horizon: minimize short-term \textbf{loss} due to uncertainty, strategy changes over time
+\end{itemize}
+\textbf{We are able to solve the exploration/exploitation problem by considering upper bounds (NOT lower bounds) on the expected rewards}.
+
+\subsection{Kinds of MAB}
+    MAB specific case of MDP $\langle S,A,P,R,\gamma,\mu\rangle$
+    \begin{itemize}
+        \item $S$ is a (finite) set of states \\$\rightarrow$ single state $S=\{s\}$
+        \item $A$ is a (finite) set of actions \\$\rightarrow$ \textbf{arms} $A=\{a_1,\cdots,a_N\}$, at each time choose either single action or probability distribution
+        \item $P$ is a state transition probability matrix $P(s'|s,a)$, probability of reaching $s$ given that we start from $s'$ through action $a$, depends only on present and not on past as Markovian \\$\rightarrow$ $P(s|a_i,s)=1$, $\forall\,a_i$, as one state only
+        \item $R$ is a reward function $R(s,a)=\mathbb{E}[r|s,a]$, Markovian, depends only on current state and currenct action \\$\rightarrow$ $R(s,a_i)=R(a_i)$
+        \item $\gamma$ is a discount factor $\in [0,1]$, how much future rewards are important, if 0 means only interested in now, if 1 future very important: parameter of problem, not of algorithm \\$\rightarrow$ finite time horizon $\gamma=1$
+        \item a set of initial probabilities $\mu_i^0=P(X_0=i)$ for all $i$ \\$\rightarrow$ $\mu^0(s)=1$, as one state only
+    \end{itemize}
+    To fully define the problem we only need the \textbf{reward}:
+    \begin{itemize}
+        \item \textbf{Deterministic}: we have a single value for the reward for each arm (trivial solution, try each one once, then take the best)
+        \item \textbf{Stochastic}: the reward of an arm is drawn from a distribution which is stationary over time
+        \item \textbf{Adversarial}: an adversary chooses the reward we get from an arm at a specific round, knowing the algorithm we are using to solve the problem
+    \end{itemize}
+    \begin{tabularx}{\linewidth}{X X X X}
+        \toprule
+        \textbf{Type} & \textbf{Deterministic} & \textbf{Stochastic} & \textbf{Adversarial}\\
+        \midrule
+        \endfirsthead
+        \toprule
+        \textbf{Type} & \textbf{Deterministic} & \textbf{Stochastic} & \textbf{Adversarial}\\
+        \midrule
+        \endhead
+        \midrule
+        \footnotesize [Continues on next page]
+        \endfoot
+        \bottomrule
+        \endlastfoot
+        \textbf{FREQUENTIST} & Trivial & UCB (like UCB1) & \multirow{2}{5.5cm}{We do not have any parameter to estimate, don't have anything that characterizes our reward, so does not make sense distinguish freq and bayesian. An approach is EXP3}\\[4ex] \cmidrule{1-3}
+        \textbf{BAYESIAN } & Trivial & Thompson sampling \\[4ex]
+    \end{tabularx}
+    In RL, we don't know how many times we chose the suboptimal arm, we don't know how much we lost during the learning process.
+
+\subsection{Stochastic MAB}
+    A MAB problem is a tuple $\langle A,R\rangle$
+    \begin{itemize}
+        \item $A=\{a_1,\cdots,a_N\}$ is a set of $N$ possible arms (choices)
+        \item $R$ is a set of \textbf{unknown} distributions $R(a_i)$\\
+        Reward: $r\sim R(a_i)$\\
+        Expected reward: $R(a_i)=\mathbb{E}_{r\sim R(a_i)}[r]$
+    \end{itemize}
+    We consider the following process:
+    \begin{itemize}
+        \item At each round $t$ the agent selects a single arm $a_{it}$
+        \item The environment generates a stochastic reward $r_{a_{i_t},t}$ drawn from $R(a_{it})$, where $r_{a_{i_t},t}$ is the realization of the reward for the arm $a_{i_t}$ we chose for the turn
+        \item The agent updates her information by means of a history $h_t$ (pulled arm and received reward)
+    \end{itemize}
+    We can either:
+    \begin{itemize}
+        \item \textbf{Maximize summation of reward}, agent has to maximize cumulative reward over a given time horizon T:
+        \begin{LARGE}
+            $$\sum_{t=1}^Tr_{a_{i_t},t}$$
+        \end{LARGE}
+        Where $r_{a_{i_t},t}$ is the realization of the reward for the arm $a_{i_t}$ we chose for the turn.\\
+        Notice $\gamma=1$
+        \item \textbf{Minimize the regret}, reformulate the objective function:
+        \begin{itemize}
+            \item Define the expected reward of the \textbf{optimal arm} $a^*$ as:
+            $$R^*=R(a^*)=\max_{a\in A}R(a)=\max_{a\in A}\mathbb{E}_{r\sim R(a)}[r]$$
+            \item At a given time step t, we select the action $a_{i_t}$, we observe the reward $r_{a_{i_t},t}\sim R(a_{i_t})$ and we incur in an \textbf{expected loss} of:
+            $$R^*-R(a_{i_t})$$
+        \end{itemize}
+        With each suboptimal arm we have a loss of reward, we want to minimize the expected regret suffered over a finite time horizon of $T$ rounds. We define the \textbf{expected pseudo regret}:
+        \begin{LARGE}
+            $$L_T=TR^*-\mathbb{E}\left[\sum_{t=1}^TR(a_{i_t})\right]$$
+        \end{LARGE}
+    \end{itemize}
+    The two methods are equivalent. According to the policy we are using (not deterministic), we have stochastic behavior in expected value.\\
+    The regret can also be defined as:
+    \begin{LARGE}
+        $$L_T=\sum_{a_i\in A:\Delta_i>0}\mathbb{E}[N_T(a_i)]\Delta_i$$
+    \end{LARGE}
+    i.e., we want to minimize the number of times we select a suboptimal arm. The $\delta$ is literally a delta, it represents the difference between the reward we have got and the maximum reward we would have got. An example:
+
+    \vspace{1em}
+    $N=3$ arms, optimal is 2\\
+    1 2 3 2 1 3 3 1
+
+    $
+    \begin{cases}
+        1\rightarrow lose\,\,\Delta_1=R^*-R(a_{1_t})\\
+        2\rightarrow lose\,\,0=R^*-R(a_{2_t})\rightarrow \text{2 is optimal}\\
+        3\rightarrow lose\,\,\Delta_2=R^*-R(a_{3_t})
+    \end{cases}
+    $
+
+    So totally we lost the summation of $3\Delta_1+0+3\Delta_3$.\\
+    In this example if random policy I'm selecting the suboptimal arm number 1 $\frac{T}{N}$ times, so a regret of $\frac{T}{N}\Delta_1$ for arm 1.
+    
+    \textbf{MAB lower bound, Lay \& Robbins theorem}:\\
+    Given a MAB stochastic problem, any algorithm satisfies:
+    \begin{LARGE}
+        $$\lim_{T\rightarrow \infty}L_T\geq \log T\sum_{a_i\in A:\Delta_i>0}\frac{\Delta_i}{KL(R(a_i),R(a^*))}$$
+    \end{LARGE}
+    \begin{itemize}
+        \item In the summation consider the non-optimal arms
+        \item Where $KL(R(a_i),R(a^*))$ is the Kullback-Leibler divergence between the two Bernoulli distributions $R$, if small (arm close to optimal one) we will have great regret, hard problem
+        \item The definition of regret in terms of $\Delta_i$ implies that any algorithm performance is determined by the \textbf{similarity} among arms
+        \item The more the arms are similar, the more the problem is difficult
+        \item Cannot get constant regret
+    \end{itemize}
+    In \textbf{pure exploitation algorithm (no exploration)} we select next arm according to largest empirical expected reward:
+    \begin{itemize}
+        \item Always select the action s.t. $a_{i_t}=\arg\max_{a\in A}\hat{R}_t(a)$ where the expected reward for an arm is:
+        $$\hat{R}_t(a_l)=\frac{1}{N_t(a_l)}\sum_{j=1}^{t-1}r_{a_{i_j},j}1\{a_l=a_{i_j}\}$$
+        Which is equal to total sum of realizations/rewards of arm $l$ at timestamp $t$ over the number of times $N_t(a_l)$ the arm $l$ was selected
+        \item Tries to minimize cumulated regret in a straightforward way
+        \item Might not converge to optimal action, if reward drawn by Bernoulli distribution (either 1 or 0), if I pick the optimal arm but with 0 reward (proability of $1-\mu^*$) by chance, being positive probability that the arm is pulled only once, the regret cannot be less than linear in the time horizon (i.e. $O(T)$) we will never select the optimal arm again!
+        \item An arm cannot be selected once, we get empirical value which is uncertain
+        \item Need bonus for exploration, if uncertainty explore it, but not too much otherwise regret increases, the more we are uncertain on a specific choice, the more we want the algorithm to explore that option
+    \end{itemize}
+    If we consider an \textbf{$\epsilon$-greedy algorithm (deterministic policy)} that selects the best action for small percentages of times $\epsilon$, where all the actions are considered, in a stochastic MAB setting:
+    \begin{itemize}
+        \item We \textbf{cannot reach/converge to optimal strategy}, it will always select the suboptimal arm with a fixed probability. This leads to a regret of the order $\epsilon T >> O(\log T)$
+        \item If we use a stratefy s.t. $\lim_{t\rightarrow\infty}\epsilon(t)=0$ we might converge. But even if this strategy converges, you do not have any assurance about the regret we are suffering in the process of learning
+    \end{itemize}
+    Two formulations:
+    \begin{itemize}
+        \item \textbf{Frequentist}, parameters are numbers:
+        \begin{itemize}
+            \item $R(a_1),\cdots,R(a_N)$ are \textbf{unknown parameters}
+            \item A policy selects at each time step an arm based on the observation history
+        \end{itemize}
+        \item  \textbf{Bayesian}, parameters are distributions:
+        \begin{itemize}
+            \item $R(a_1),\cdots,R(a_N)$ are \textbf{random variables} with prior distributions $f_1,\cdots,f_N$
+            \item A policy selects at each time step an arm based on the observation history \textbf{and on the provided priors}
+        \end{itemize}
+    \end{itemize}
+\subsubsection{Frequentist: Upper Confidence Bound}
+    Istead of using the empiric estimate we consider an upper bound $U(a_i)$ over the expected value $R(a_i)$ (\textbf{if basing on expected value we are not using all information we have about the estimates}):
+    $$U(a_i):=\hat{R_t}(a_i)+B_t(a_i)\geq R(a_i)$$
+    The bound length $B_t(a_i)$ depends on how much information we have on an arm, i.e., the number of times we pulled that arm so far $N_t(a_i)$:
+    \begin{itemize}
+        \item Small $N_t(a_i)\rightarrow$ large $U(a_i)$ (the estimate value $\hat{R}_t(a_i)$ is \textbf{uncertain})
+        \item Large $N_t(a_i)\rightarrow$ small $U(a_i)$ (the estimate value $\hat{R}_t(a_i)$ is \textbf{accurate})
+    \end{itemize}
+    In order to set the upper bound the resort to a classical concentration inequality, \textbf{Hoeffding inequality}:\\
+    Let $X_1,\cdots,X_t$ be i.i.d. random variables with support in [0,1] and indentical mean $\mathbb{E}[X_i]=:X$ and let $\overline{X}_t=\frac{\sum_{i=1}^tX_i}{t}$ be the sample mean, then:
+    $$\mathbb{P}(X>\overline{X}_t+u)\leq e^{-2tu^2}$$
+    Applying the inequality to the upper bounds corresponding to each arm:
+    $$\mathbb{P}\left(R(a_i)>\hat{R}_t(a_i)+B_t(a_i)\right)\leq e^{-2N_t(a_i)B_t(a_i)^2}$$
+    Compute the upper bound:
+    \begin{itemize}
+        \item Pick a probability p that the real value exceeds the bound:
+        $$e^{-2N_t(a_i)B_t(a_i)^2}=p$$
+        \item Solve to find $B_t(a_i)$:
+        $$B_t(a_i)=\sqrt{\frac{-\log p}{2N_t(a_i)}}$$
+        \item Reduce the value of $p$ over time, e.g. $p=t^{-4}$
+        $$B_t(a_i)=\sqrt{\frac{2\log p}{N_t(a_i)}}$$
+        \item Ensure to select the optimal action as the number of samples increases:
+        $$\lim_{t\rightarrow\infty}B_t(a_i)=0\implies \lim_{t\rightarrow\infty}U_t(a_i)=R(a_i)$$
+    \end{itemize}
+    A particular UCB, \textbf{UCB1, which tries to keep all upper confidence bounds at same level by pulling arms the same number of times}:
+    \begin{itemize}
+        \item For each time step $t$
+        \item Compute the expected reward for an arm (seen before):
+        $$\hat{R}_t(a_l)=\frac{1}{N_t(a_l)}\sum_{j=1}^{t-1}r_{a_{i_j},j}1\{a_l=a_{i_j}\},\,\forall a_i\in A$$
+        \item Solve to find $B_t(a_l)$:
+        $$B_t(a_l)=\sqrt{\frac{2\log t}{N_t(a_l)}},\,\forall a_l\in A$$
+        Bound and number of times an arm was pulled are \textbf{inversely proportional}
+        \item Play arm $a_{i_t}$ (\textbf{the one with max sum of reward and bound}):
+        $$a_{i_t}=\arg\max_{a_l\in A}\left\{\hat{R}_t(a_l)+B_t(a_l)\right\}$$
+        \item Theorem, UCB1 upper bound, Auer \& Cesa-Bianchi: at finite time $T$ the expected total regret of the UCB1 algorithm applied to a stochastic MAB problem is:
+        $$L_T\leq 8\log T\sum_{a_i\in A:\Delta_i>0}\frac{1}{\Delta_i}+\left(1+\frac{\pi^2}{3}\right)\sum_{a_i\in A:\Delta_i>0}\Delta_i$$
+        \item Converges to the one with highest \textbf{real} expected reward/value
+        \item At each turn it \textbf{modifies the statistics} of the \textbf{all arms}
+        \item \textbf{Not randomized}
+    \end{itemize}
+\subsubsection{Bayesian: Thompson Sampling}
+    PDF of $Beta$:
+    $$\frac{x^{\alpha-1}(1-x)^{\beta-1}
+    }{
+        B(\alpha,\beta)
+    }$$
+    $$B(\alpha,\beta)=\frac{\Gamma(\alpha)\Gamma(\beta)
+    }{
+        \Gamma(\alpha+\beta)
+    }$$
+    $$
+    \Gamma(1)=1\qquad \Gamma(\frac{1}{2})=\sqrt\pi\qquad
+    \Gamma(k+1)=k\Gamma(k)\qquad\Gamma(k)=(k-1)!
+    $$
+    General Bayesian methodology for online learning:
+    \begin{itemize}
+        \item Consider a \textbf{Bayesian prior} for each arm $f_1,\cdots,f_N$ as a starting point for the expected value of the reward (i.e. $\mu_i\sim Beta(1,1)=U([0,1])$. During the learning process we update the beta distribution erior provided by the reward)
+        \item At each round $t$ we sample using the post a reward from each one of the arm distribution $\hat{r}_1,\cdots,\hat{r}_N$
+        \item \textbf{Pull} the arm $a_{i_t}$ with the highest sampled value $i_t=\arg\max_i\hat{r}_i$ (according to largest distribution)
+        \item \textbf{Update} the prior incorporating the new information
+    \end{itemize}
+    We will assume Bernoulli rewards:
+    \begin{itemize}
+        \item If we start from $Beta$ distributions in our arm, over the process we will have $Beta$ distributions. $Beta$ are defined in 0 and 1
+        \item We do not have to reuse samples from scratch, updating according to last sample we saw: \textbf{true online process}
+    \end{itemize}
+    Particularly, the conjugate prior distributions we use are $Beta(\alpha, \beta)$ and the Bernoulli:
+    \begin{itemize}
+        \item Start from a prior $f_i(0)=Beta(1,1)$ (uniform prior) for each arm $a_i\in A$
+        \item Keep a distribution $f_i(t)=Beta(\alpha_t,\beta_t)$ incorporating information gathered from each arm $a_i\in A$
+        \item After we pulled arm $a_i$, we get Bernoulli reward. Then we incrementally update the prior incorporating the information gathered from the pulled arm $a_i$:
+        \begin{itemize}
+            \item In the case of a success occurs $f_i(t+1)=Beta(\alpha_t+1,\beta_t)$
+            \item In the case of a failure occurs $f_i(t+1)=Beta(\alpha_t,\beta_t+1)$
+        \end{itemize}
+        After the update we would still have a $Beta$ distribution
+        \item Theorem, Thompson Sampling upper bound, Kaufmann \& Munos:
+        $$L_T\leq O\left(\sum_{a_i\in A:\Delta_i>0}\frac{\Delta_i}{KL(R(a_i),R(a^*))}(\log T+\log\log T)\right)$$
+    \end{itemize}
+    If the rewards were Gaussian, it is not meaningful to use $Beta$ distribution as prior: they might provide also negative values.\\
+    To determine the round we sum all $\alpha_t+\beta_t-2$, to determine the reward of an arm we consider $\alpha_t-1$: so the UCB1 upper bound $U_t(a_i)$ is of the form:
+    $$U_t(a_i)=\frac{\alpha_t-1}{\alpha_t+\beta_t-2}+\sqrt{\frac{2\log t}{\alpha_t+\beta_t-2}}$$
+    \textbf{Main points}:
+    \begin{itemize}
+        \item \textbf{Online learning}
+        \item Incorporates \textbf{expert knowledge} about the problem in the arms
+        \item Provide \textbf{tight theoretical upper bound} on the expected regret in the stochastic setting, aswell as UCB
+        \item TS modifies $Beta$ distribution corresponding to the pulled arm: at each turn it \textbf{modifies the statistics} of the \textbf{chosen} arm
+        \item \textbf{Randomized algorithm}, it extracts a sample from each posterior distribution of the arms at each turn
+    \end{itemize}
+
+\subsection{Adversarial MAB}
+    An adversarial MAB is a tuple $\langle A,R\rangle$:
+    \begin{itemize}
+        \item $A=\{a_1,\cdots,a_N\}$ is a set of $N$ possible arms (choices)
+        \item $R$ is a reward vector for which the realization $r_{a_i,t}$ is decided by an adversary player each turn
+    \end{itemize}
+    We consider the following process:
+    \begin{itemize}
+        \item At each time step $t$ the agent selects a single arm $a_{i_t}$
+        \item At the same time the adversary chooses reward $r_{a_i,t},\,\forall a_i\in A$
+        \item The agent gets the reward $r_{a_{i_t},r}$
+        \item The objective is to maximize the cumulative reward:
+        $$\sum_{t=1}^Tr_{a_{i_t}}$$
+    \end{itemize}
+    We assume that the adversary is \textbf{oblivious} (or non-adaptive), she selects the rewards in advance knowing the agent's algorithm but not the actual action realization (if she knows realization will always give 0 reward, too powerful).\\
+    To beat adversary I have to randomize, so opponent cannot setup reward at the beginning.\\
+    As \textbf{no stochastic} quantity here, need different regret definition, \textbf{pseudo regret}:
+    \begin{LARGE}
+        $$L_T=\max_{a_i\in A}\mathbb{E}\left[\sum_{t=1}^Tr_{a_i,t}\right]-\mathbb{E}\left[\sum_{t=1}^Tr_{a_{i_t},t}\right]$$
+    \end{LARGE}
+    Where the expectation is w.r.t. the randomization used by the algorithm and the adversary. Left optimal ($r_{a_i,t}$), right what I'm actually getting ($r_{a_{i_t},t}$)\\
+    \textbf{Lowerbound}, Minimax lower bound:\\
+    Let sup be the supremum over all distribution of rewards such that, for $i\in \{1,\cdots,N\}$ the rewards $r_{i,1},\cdots,r_{i,T}$ and $r_{i,j}\in\{0,1\}$ are i.i.d. and let inf be the infimum over all forecasters, then:
+    $$\inf\sup L_T\geq \frac{1}{20}\sqrt{TN}$$
+    Where $T$ is the time horizon. For stochastic LW was $O(\log T)$, while here sqrt, stochastic should be better, but \textbf{different definitions of regret, not fair comparison}.
+\subsubsection{EXP3: variation of softmax}
+    \begin{itemize}
+        \item Variation of softmax algorithm
+        \item Probability of choosing an arm:
+        $$\pi_t(a_i)=(1-\beta)\frac{w_t(a_i)}{\sum_jw_t(a_j)}+\frac{\beta}{N}$$
+        Where
+        \begin{LARGE}
+            $$
+            w_{t+1}(a_i)=
+            \begin{cases}
+                w_t(a_i)e^{\eta\frac{r_{a_i,t}}{\pi_t(a_i)}}\hspace{1em}if\,a_i\,has\,been\,pulled,\,i.e.\,a_{i_t}=a_i\\
+                w_t(a_i)\hspace{2em} otherwise
+            \end{cases}
+            $$                
+        \end{LARGE}
+        \item The $\pi$ introduces stochastic element
+        \item $\beta$ is additional exploration term, helps exploration
+        \item Exploration is to trick opponent, if avoid exploration and always see the arm with largest reward we are deterministic, cannot beat opponent
+        \item Upper bound: at time T, the pseudo regret of EXP3 algorithm applied to an adversarial MAB problem with $\beta=\eta=\sqrt{\frac{N\log N}{(e-1)T}}$ is
+        $$L_T\leq O(\sqrt{TN\log N})$$
+        Where the expectation is taken with respect to both the random generation rewards and the internal randomization of the forecaster
+    \end{itemize}
+
+\subsection{Other MABs}
+    Other Bandits:
+    \begin{itemize}
+        \item Budget-MAB: we are allowed to pull arms until a fixed budget elapses, where the pulling action incurs in a reward and a cost
+        \item Continuous armed bandit: we have a set or arms which is not finite, so infinite regret, need regularity in reward function $\rightarrow$ expert setting
+    \end{itemize}
+    Other sequential decision settings:
+    \begin{itemize}
+        \item Best-arm identification problem: we just want to identify the optimal arm with a given confidence, without caring about the regret
+        \item Expert setting: we are allowed also to see the reward which would have given the not pulled arm each turn (online learning problem)
+    \end{itemize}

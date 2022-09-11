@@ -1,0 +1,134 @@
+% !TeX root = ../main.tex
+
+\section{Kernel methods for classification: Support Vector Machines}
+
+\subsection{Main points}
+    \begin{itemize}
+        \item Memory-based/instance-based methods, non-parametric: in prediction still uses training dataset, \textbf{fast to train, but slow for real time answers (in which case parametric better)}
+        \item \textbf{Sparse method, prediction cost scales with \#SVs and not with \#training samples}, for the prediction will use:
+        \begin{enumerate}
+            \item A subset of training examples (the support vectors)
+            \item A vector of weights for them $\alpha$, calculated by maximizing the margin
+            \item A similarity function $K(x,x')$, the kernel
+        \end{enumerate}
+        \item SVMs are a generalization of perceptron
+        \item If you need various support vectors means solution very sensible to points (overfitting, classifier tries to classify correctly everything, but points lot variance), changing a point slightly means solution changes: \textbf{suffers from the curse of dimensionality: the more data/dimensions of the input space, the more support vectors, which implies poorer generalization, increasing of variance and decreasing of the performance in prediction}
+        \item The prediction uses only a subset of the training data, so SVMs are \textbf{more efficient in prediction than other kernel based methods}
+        \item If new data comes to the dataset, SVMs must be retrained only if there are new data closer to the decision boundary: only new inputs near the margins/boundary/separating plane will likely modify the SVM separating surface, so must retrain
+        \item The use of kernel allows to find non-linear boundaries
+        \item Hypothesis space: $y_n=f(x_n,w)=sign(w^Tx_n+b)$
+        \item Optimization method: \textbf{quadratic optimization}
+        \item \textbf{Using SVM with linear kernel will find separating hyperplane like logistic regression}, if logistic regression cannot find it, neither SVM will succeed
+    \end{itemize}
+
+\subsection{Learning phase}
+\subsubsection{Perceptron revisited}
+    Perceptron as dot product:
+    $$f(x_q)=sign\left[\sum_{j=1}^{M}w_j\phi_j(x_q)\right]$$
+    Let
+    $$w_j=\sum_{n=1}^N\alpha_nt_n\phi_j(x_n)$$
+    So
+    $$f(x_q)=\cdots=sign\left[\sum_{n=1}^{N}\alpha_nt_n(\phi(x_q)\phi(x_n))\right]$$
+    The sum over the features has been rewritten as a sum over the samples, the Perceptron can be then seen as a special case of instance-based learning\\
+    \textbf{Perceptron stops at the very first plane that separates}
+
+\subsubsection{Maximize the margin}
+    \begin{itemize}
+        \item Choice of kernel, depends on our knowledge, no general rule, how can I choose features? If no knowledge, feature expansion, careful not to overfit
+        \item Choice of examples, how choose subset of samples, we will see that will be side effect of choosing weights (samples associated to zero weights will be discarded)
+        \item Choice of weights, maximize the margin so more robust classifier
+    \end{itemize}
+    The margin is defined as the minimum distance between the decision boundary hyperplane and its nearest point:
+    $$Margin=\min_n\,t_n(w^T\phi(x_n)+b)$$
+    $w^t\phi(x_n)$ is the unnormalized distance that could be negative, but as we multiply to $t_n$ that can be -1 or 1 (\textbf{we assume that all points are perfectly classified}) the \textbf{margin is a positive term}\\
+    We want to find $w^*$ and $b$ that maximize the margin, we consider the normalized margin by dividing for L2-norm :
+    $$w^*=\arg\,\max_{w,b}\left(\frac{1}{||w||_2}\min_n\,t_n(w^T\phi(x_n)+b)\right)$$
+    We have one degree of freedom, so infinite solutions: by scaling the points with weights, the solution does not change. To fix this we impose the margin to be 1 and write an equivalent easier to solve problem: \textbf{we fix the margin, we minimize the weights}
+    \begin{itemize}
+        \item \textbf{Minimize} $\frac{1}{2}||w||^2_2$
+        \item \textbf{Subject to} $t_n(w^T\phi(x_n)+b) \geq 1$ for all n
+    \end{itemize}
+    This is now a constrainted optimization problem, solved with Lagrangian multipliers, eventually leading to the solutions being computes in one of either two forms, one called primal (over feature weights) and one called dual (over instance weights, the solution will have a lot of zero weights).\\
+    The Lagrangian function in our case:
+    $$L(w,b,\alpha)=\frac{1}{2}||w||^2_2-\sum_{n=1}^N\alpha_n(t_n(w^T\phi(x_n)+b)-1)$$
+    $\alpha$, so we are considering dual
+    Putting the gradient w.r.t. w and b to zero:
+    $$w=\sum_{n=1}^N\alpha_nt_n\phi(x_n)$$
+    $$0=\sum_{n=1}^N\alpha_nt_n$$
+    Substituting in the Lagrangian and considering that $||w||=w^Tw$ is kernel, we can rewrite the Lagrangian as:
+    \begin{itemize}
+        \item \textbf{Maximize} $$\tilde{L}(\alpha)=\sum_{n=1}^N\alpha_n-\frac{1}{2}\sum_{n=1}^N\sum_{m=1}^N\alpha_n\alpha_mt_nt_mk(x_n,x_m)$$
+        \item \textbf{Subject to} $\alpha_n \geq 0$ for all $n=1,\cdots,N$
+        \item $\sum_{n=1}^N\alpha_nt_n=0$
+    \end{itemize}
+    \textbf{In SVM, active constraints are support vectors}, a point is a SV if it is between the margins
+    $$|w^Tx+b|\leq 1$$
+    Solving this problem we get a vector of alpha with some zeros, that we will discard and we will obtain the classifier.
+
+\subsection{Prediction phase}
+    Once we have optimized and found the $\alpha$ parameters, we can perform predictions. This parameter defined which training samples become support vectors by giving each sample a weight. If the weight is zero then it is not a support vector. An important result of SVM is also that: points that do not lie on the margin are not even considered for prediction, hence having a sparser input space. \textbf{The less support vectors we have, the better, or else we'd be overfitting.}\\
+    The classification of new points with the train model is:
+    $$y(x)=sign\left(\sum_{n=1}^N\alpha_nt_nk(x,x_n)+b\right)$$
+    Where
+    $$b=\frac{1}{N_S}\sum_{n\in S}\left(t_n-\sum_{m\in S}\alpha_mt_mk(x_n,x_m)\right)$$
+    $N_S$ is the number of support vectors, usally \textbf{much smaller} than N
+
+\subsection{Bounds of SVMs}
+    Train SVM, remove one sample, retrain... if solution does not change, correctly classified. Every time I remove a point, I assume an error, upperbound rate.
+    \begin{itemize}
+        \item \textbf{Margin bound}, bound on VC dimension decreases with margin. Larger the margin, less capacity to overfit, less VC dimension. Margin is \textbf{quite loose}
+        \item \textbf{Leave-one-out bound}
+        $$L_h\leq\frac{\mathbb{E}[Number\,of\,support\,vectors\,|S|\,or\,N_S]}{N}$$
+        It can be easily computed, we do not need to run SVM multiple times
+        We use N-1 samples for training and one sample for validation, repeating this operation N times.\\
+        The loss function will be upper bounded by the probability of missclassifying a point.
+    \end{itemize}
+
+\subsection{Handling noisy data}
+    For noisy data that is \textbf{not linearly separable} we change constraints, we tolerate, we can accept margin less than one and negative, but penalize such solutions: \textbf{hard margin to soft-margin}\\
+    We introduce \textbf{slack variables} $\xi_i$, penalty term\\
+    Before:
+    \begin{itemize}
+        \item \textbf{Minimize} $\frac{1}{2}||w||^2_2$
+        \item \textbf{Subject to} $t_n(w^T\phi(x_n)+b) \geq 1$ for all n
+    \end{itemize}
+    Now:
+    \begin{itemize}
+        \item \textbf{Minimize} $||w||^2_2+C\sum_n\xi_n$
+        \item \textbf{Subject to} $t_n(w^Tx_n+b) \geq 1-\xi_n$ for all n
+        \item $\xi_n \geq 0$
+    \end{itemize}
+    Where $C$ is a coefficient that allows to tradeoff bias-variance (how much penalize, \textbf{regularization} parameter) and is chosen by \textbf{cross validation}: \textbf{larger values} make the margin \textbf{thinner, more variance}, the optimization will choose a smaller-margin hyperplane since that hyperplane does a better job of getting all the training data points classified correctly.\\
+    If the data are linearly separable, an SVM using a linear kernel will have $C$ influencing the boundary parameters $w$ too
+
+    \subsubsection{Dual problem}
+    Before:
+    \begin{itemize}
+        \item \textbf{Maximize} $$\tilde{L}(\alpha)=\sum_{n=1}^N\alpha_n-\frac{1}{2}\sum_{n=1}^N\sum_{m=1}^N\alpha_n\alpha_mt_nt_mk(x_n,x_m)$$
+        \item \textbf{Subject to} $\alpha_n \geq 0$ for all $n=1,\cdots,N$
+        \item $\sum_{n=1}^N\alpha_nt_n=0$
+    \end{itemize}
+    Now just changes constraint on alpha:
+    \begin{itemize}
+        \item \textbf{Maximize} $$\tilde{L}(\alpha)=\sum_{n=1}^N\alpha_n-\frac{1}{2}\sum_{n=1}^N\sum_{m=1}^N\alpha_n\alpha_mt_nt_mk(x_n,x_m)$$
+        \item \textbf{Subject to} $0 \geq \alpha_n \leq C$ for all $n=1,\cdots,N$
+        \item $\sum_{n=1}^N\alpha_nt_n=0$
+    \end{itemize}
+
+\subsubsection{Main points}
+    \textbf{Slack weight $C$}:
+    \begin{itemize}
+        \item Support vectors are points associated to $\alpha_n > 0$
+        \item If $\alpha_n < C$ the point lies on the margin
+        \item If $\alpha_n = C$ the point lies inside the margin and can be correctly classified ($\xi_n \leq 1$) or misclassified ($\xi_n > 1$)
+        \item For small C, more bias (C=0 and $\alpha=0$ and no penalizing term), \textbf{strong regularization, more robust to outliers}. I noisy dataset keep it small so we have lower variance
+        \item For big C, more variance, overfitting, classifier tries to follow every point, \textbf{less prone to include points in the support vector set}
+    \end{itemize}
+    \textbf{Kernel}
+    \begin{itemize}
+        \item The choice might be \textbf{driven} by \textbf{additional information about the problem or cross validation}
+        \item \textbf{Kernel parameters} (if present): if we consider a Gaussian kernel we might change the bandwidth. Using a \textbf{wider kernel we are less prone to overfitting}, if \textbf{too large} we might incorporate \textbf{too few information from the training set} (i.e. in a Gaussian kernel setting a large bandwidth is equivalent to have an uniform prior over the input space)
+    \end{itemize}
+
+
+

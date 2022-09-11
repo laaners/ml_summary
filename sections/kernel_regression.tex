@@ -1,0 +1,197 @@
+% !TeX root = ../main.tex
+
+\section{Kernel methods for regression}
+
+\subsection{Main points}
+    \begin{itemize}
+        \item Memory-based/instance-based methods, non-parametric: in prediction still uses training dataset, \textbf{fast to train, but slow for real time answers (in which case parametric better)}
+        \item Requires metric to measure if input samples similar or not
+        \item Replace features with kernel, \textbf{knowledge of problem not in the choice of features anymore}
+        \item Linear models are not rich enough for capturing non-linear patterns: complexity in number of features, but with kernel \textbf{complexity in number of samples}
+        \item Can work in a \textbf{very large feature space without computing them}
+        \item Make linear models work in non-linear settings by \textbf{mapping (changing feature representation) data to higher dimensions where it exhibits linear patterns}
+        \item Non-parametric methods are \textbf{less affected by the curse of dimensionality}, as they deal with an exponentially growing feature space through the kernel trick
+    \end{itemize}
+
+\subsubsection{Feature expansion/mapping}
+    Projecting in high dimensional feature space so that data becomes linearly separable. \\
+    Time and memory complexity: computing it may be inefficient, also mapping leads to number of features to blow up. \\
+    Kernels avoid both these issues:
+    \begin{itemize}
+        \item The mapping doesn't have to be explicitly computed
+        \item Computations with the mapped features remain efficient
+    \end{itemize}
+    Adding features to my model (consider not using kernel):
+    \begin{itemize}
+        \item If we add \textbf{unnecessary} features we are \textbf{increasing the variance} of the considered model without having any benefit for decreasing the model bias (in classification too)
+        \item The \textbf{training time increases if parametric}, while in \textbf{non-parametric} we do \textbf{not require training}, no computation
+        \item The \textbf{prediction time increases}, larger computational time both for parametric and non, unless we are resorting to the \textbf{kernel trick}, which might keep the computational cost dependent only on the dataset dimension N
+        \item The \textbf{proper choice of features} requires a priori information on the problem, \textbf{not trivial}
+        \item You \textbf{do not} need to know the \textbf{right set of features} if we want to make use of them, the \textbf{kernel trick} projects the data into a higher dimensional space, without requiring to choose specific features. It is strill true that the use of the proper kernel for a specific problem might give better generalization capabilities to your learner
+    \end{itemize}
+    Use the kernel trick when
+    \begin{itemize}
+        \item \textbf{Data not linearly separable}
+        \item \textbf{No regularity in data}, if e.g. polar coordinates not use
+        \item \textbf{Do not use if a priori we know that the dataset can be projected in a linearly separable space}, but \textbf{use when we are projecting into an infinite/high dimensional space}, we can use the kernel trick to not deal with large feature vectors
+    \end{itemize}
+
+\subsubsection{Kernel function}
+    Is a function that given two points, outputs a number: higher it is, higher the similarity. Should be able to rewrite it as scalar product of two feature vectors
+    A kernel function is given by:
+    \begin{center}
+        $k(x,x')=\phi(x)^T\phi(x')$        
+    \end{center}
+    Where $\phi(x)$ is a fixed nonlinear feature space mapping (\textbf{basis function})
+    \begin{itemize}
+        \item It must exist a feature expansion
+        \item \textbf{Symmetric}, $k(x,x')=k(x',x)$
+        \item Zero when two vectors orthogonal, no similarity
+    \end{itemize}
+    Types of kernels:
+    \begin{itemize}
+        \item $k(x,x')=x^Tx', \phi(x)=x$, identity mapping in feature space, \textbf{linear kernel}
+        \item $k(x,x')=k(x-x')$, stationary kernel, invariant to translation in space
+        \item $k(x,x')=k(||x-x'||)$, homogeneous kernel or radial basis functions, depends only on the magnitude of the distance between arguments
+    \end{itemize}
+
+\subsection{Dual of ridge regression}
+    Reminder, ridge regression:
+    $$L_{w}=\frac{1}{2}\sum_{n=1}^{N}(w^T\phi(x_n)-t_n)^2+\frac{\lambda}{2}w^Tw$$
+    To minimize, we compute the gradient with respect to w and then we put it to 0:
+    $$w=\sum_{n=1}^Na_n\phi(x_n)=\Phi^T\textbf{a}$$ $$a_n=-\frac{1}{\lambda}(w^T\phi(x_n)-t_n)$$ $$(NxM)^TNxM$$
+    $\Phi$, $\textbf{a}$ = \#samples x \#features \\
+    w = \#features\\
+    We then define the Gram matrix $K=\Phi\Phi^T$, an NxN matrix of similarities:
+    $$K_{nm}=\phi(x_n)^T\phi(x_m)=k(x_n,x_m)$$
+    \begin{center}        
+        $
+        K=
+        \begin{bmatrix}
+            k(x_1,x_1) & \cdots & k(x_1,x_n) \\
+            \vdots & \ddots & \vdots \\
+            k(x_n,x_n) & \cdots & k(x_n,x_n)
+        \end{bmatrix}
+        $
+    \end{center}
+    K is symmetric, in K the features have disappeared.\\
+    Now we substitute $w=\Phi^T\textbf{a}$ into the loss function $L_w$, then $\Phi\Phi^T$ with K:
+    $$L_w=\frac{1}{2}(\Phi w-t)^2+\lambda\textbf{a}^T\Phi\Phi^T\textbf{a}$$
+    $$L_w=\frac{1}{2}(\Phi\Phi^T\textbf{a}-t)^2+\lambda\textbf{a}^T\Phi\Phi^T\textbf{a}$$
+    $$L_w=\frac{1}{2}(\textbf{a}^T\Phi\Phi^T\Phi\Phi^T\textbf{a}-2\textbf{a}^T\Phi\Phi^Tt+t^Tt)+\lambda\textbf{a}^T\Phi\Phi^T\textbf{a}$$
+    $$L_{\textbf{a}}=\frac{1}{2}\textbf{a}^TKK\textbf{a}-\textbf{a}^TKt+\frac{1}{2}t^Tt+\frac{\lambda}{2}\textbf{a}^TK\textbf{a}$$
+    Solving for \textbf{a}:
+    $$\textbf{a}=(K+\lambda I_N)^{-1}t$$
+    Which is similar to the close-form of parametric ridge regression. To predict the y, as $w=\Phi^T\textbf{a}$:
+    $$y=\Phi w=\Phi\Phi^T\textbf{a}=K\textbf{a}$$ $$y(x)=\phi(x)w=w^T\phi(x)=\cdots=k(x)^T\textbf{a}$$
+    Pros and cons of dual representation:
+    \begin{itemize}
+        \item If \#samples much bigger than \#features, kernel not needed
+        \item If want to work in a high dimensional feature space, kernel needed
+        \item In parametric $w_{OLS/ML}=(\Phi^T\Phi)^{-1}\Phi^Tt$, so need to invert an MxM matrix, while here NxN: apparent disadvantage, but as we work with kernel function $k(x,x')$ we avoid working with a feature vector $\phi(x)$ and \textbf{avoid problems associated with very high or infinite dimensionality of x}
+        \item Kernel functions can be defined not only over simply vectors of real numbers, but also over objects as diverse as graphs, sets, string and text documents
+    \end{itemize}
+
+\subsection{Constructing kernels}
+    A kernel can be defined as valid if it's equal to the inner product of a feature space.
+    \begin{enumerate}
+        \item Choose a feature space mapping $\phi(x)$ and use it to find corresponding kernel (useless method)
+        \item Function we choose has to correspond to a scalar product in some (perhaps infinite dimensional) space
+        \item Mercer's theorem: any continuous, symmetric, positive semi-definite kernel function k(x,y) can be expressed as a dot product in a high-dimensional space, so it's a valid kernel.\\
+        New kernels can be constructed from simpler ones as building blocks.
+        \begin{itemize}
+            \item $k(x, x') = c k_1 (x, x')$
+            \item $k(x, x') = f(x) k_1 (x, x') f(x')$
+            \item $k(x, x') = q(k_1(x, x'))$ where $q(\cdot)$ is a polynomial function with non-negative coefficients
+            \item $k(x, x') = exp(k_1(x, x'))$
+            \item $k(x, x') = k_1(x, x') + k_2(x, x')$
+            \item $k(x, x') = k_1(x, x') k_2(x, x')$
+            \item $k(x, x') = k(\Phi(x), \Phi(x'))$ where $\Phi$ is a function from $x$ to $R^M$ 
+            \item $k(x, x') = x^T A x'$ where $A$ is a positive semi-definite matrix
+            \item $k(x, x') = k_a(x_a, x' _ a) + k_b(x_b, x'_b)$ where $x_a$ and $x_b$ are variables with $x = (x_a, x_b)$
+            \item $k(x, x') = k_a(x_a, x'_a)k_b(x_b, )x_b'$ 
+        \end{itemize}
+    \end{enumerate}
+    Using 3, we can get this particular homogeneous kernel (\textbf{Gaussian kernel}):
+    $$k(x,x')=exp(-||x-x'||^2/2\sigma^2)$$
+    Where $\sigma^2$ regulates the width of the kernel.
+
+\subsection{Dual of Bayesian linear regression: Gaussian processes}
+    Reminder, Bayesian linear regression:
+    $$p(w|D)=\frac{p(D|w)P(w)}{P(D)}$$
+    posterior = likelihood*prior/normalizing constant\\
+    Now in kernel method no more parameters, how to define prior and likelihood?\\
+    Each input point induces a gaussian distribution on the target variables.\\
+    Instead of prior over w, we define a prior over functions directly:
+    $$p(w)=\mathcal{N}(w|0,\lambda I)$$ $$y=\Phi w$$ $$p(y)=?$$
+    y is a linear combination of Gaussian distributed variables given by the elements of w and hence is itself a Gaussian
+    \begin{itemize}
+        \item $\mathbb{E}(y)=\Phi\mathbb{E}[w]=0$, zero mean
+        \item $cov[y]=\mathbb{E}[yy^T]=\Phi\mathbb{E}[ww^T]\Phi^T=\lambda\Phi\Phi^T=K$, covariance matrix is the Gram matrix with\\ $K_{nm}=k(x_n,x_m)=\lambda\phi(x_n)^T\phi(x_m)$\\
+        Covariance is given by the kernel function $\mathbb{E}[y(x_n)y(x_m)]=k(x_n,x_m)$
+        \item So the marginal distribution $p(y)$ is defined by a Gram matrix\\ $p(y)=\mathcal{N}(y|0,K)$
+    \end{itemize}
+    A Gaussian process is defined as a probability distribution over functions y(x) such that the set of values y(x) evaluated at an arbitrary set of points $x_1,\cdots x_N$ jointly have a Gaussian distribution.
+    \begin{itemize}
+        \item This distribution is completely specified by the mean and the covariance: usually we do not have any prior information about the mean of $y(x)$ so we take it to be zero
+        \item The covariance is given by the kernel function $\mathbb{E}[t(x_j)t(x_j)]=K(x_i,x_j)$
+    \end{itemize}
+    \subsubsection{For regression}
+    \begin{itemize}
+        \item Take into account the noise on the target $$t_n=y(x_n)+\epsilon_n$$
+        \item Random noise under a Gaussian distribution $$p(t_n|y(x_n))=\mathcal{N}(t_n|y(x_n),\sigma^2)$$
+        \item Because the noise is independent on each data point, the joint distribution is still Gaussian $$p(t|y)=\mathcal{N}(t|y,\sigma^2I_N)$$
+        \item Since $p(y)=\mathcal{N}(y|0,K)$, we can compute the marginal distribution: $$p(t)=\int p(t|y)p(y)dy=\mathcal{N}(t|0,C)$$ where $C(x_n,x_m)=k(x_n,x_m)+\sigma^2\delta_{nm}$, covariance matrix of \textbf{target} variables has irreducible part in $\sigma^2$, irreducible error
+    \end{itemize}
+    \subsubsection{Making predictions}
+    \begin{itemize}
+        \item Predict target $t_{N+1}$ given unseen input $x_{N+1}$
+        \item Need to evaluate the predictive distribution $p(t_{N+1}|t_N,x_1,\cdots,x_{N+1})$\\
+        From definition we know
+        $$p(t_{N+1})=\mathcal{N}(t_{N+1}|0,C_{N+1})$$
+        we know that the distribution of a new point is a Gaussian with zero mean, with covariance matrix:
+        $$
+        C_{N+1}=
+        \begin{pmatrix}
+            C_N & k \\
+            k^T & c
+        \end{pmatrix}
+        $$
+        k is a vector $k(x_i,x_N+1)$ for $i=1,\cdots,N$, is the correlation between each point in the training set and the new point\\
+        $c$ is a scalar $c=k(x_{N+1},x_{N+1})+\sigma^2$, covariance of the single point
+        \item The distribution of the new point:
+        \begin{itemize}
+            \item $p(t_{N+1}|t_N,x_1,\cdots,x_{N+1})$, is a Gaussian, what we want to compute
+            \item $m(x_{N+1})=k^TC^{-1}_Nt$
+            \item $\sigma^2(x_{N+1})=c-k^TC^{-1}_Nk$
+            \item The mean and the variance both depend on $x_{N+1}$
+            \item C has to be positive definite <=> the kernel functions is positive semi-definite
+        \end{itemize}
+    \end{itemize}
+    We can use the following kernel:
+    $$K_{ij}=\phi\exp\left\{
+        -\frac{||x_i-x_j||_2}{2l^2}
+    \right\}$$
+    Where l is the lengthscale, use cross validation or another dataset to set it (latter bad practice):
+    \begin{itemize}
+        \item Larger: closer points will have small values for kernel, won't influence each other (\textbf{smoother})
+        \item Smaller: farther points will influence each other (\textbf{nervous}, the model will follow the data instead of the trend)
+    \end{itemize}
+
+    \subsubsection{Main points}
+    \begin{itemize}
+        \item The inversion of $C_N$ costs $O(N^3)$, but needs to be done only once for the given training set, matrix $C_N$ depends only on the training set. Computation for mean is $O(N)$, for variance $O(N^2)$. As high cost for kernel methods, we can random sampling or clustering
+        \item The performance of GP is strongly affected by the choice of the \textbf{parameters} for the kernels
+        \item The choice of the kernel parameters is a \textbf{model selection} problem, we can:
+        \begin{itemize}
+            \item Use \textbf{cross validation}, robust but slow
+            \item Maximization of the \textbf{marginal likelihood} using gradient optimization, fast but multiple local minima
+        \end{itemize}
+        \item GP \textbf{can be used in classification too} (use as regression and normalize in 0,1) and for \textbf{clustering}
+        \item The \textbf{prior} if misspecified (put 0 probability in a point of model space where true function lies) we do not converge, in ML we \textbf{converge if it's either uninformative or generic enough}
+        \item \textbf{Variance}: even if we have more samples (or infinite) in a point of the input space $x$, we have some variance (process is still providing variance of original data) unless we assume zero variance noise: the posterior shrinks as new data are coming.\\
+        \textbf{Far from the region where we have points} the variance of the GP \textbf{increases}, we do not have information, the confidence intervals of min value are increasing
+        \item In \textbf{each point of the input space $x$} the variance is \textbf{different} since determined by the covariance structure (for \textbf{linear regression this is false}, the noise is exactly the same all over the input space)
+        \item Maximum value of Gaussian kernel is 1, as $max_xe^{-x^2}=1$
+        \item Can be used in an \textbf{online way} (i.e. sequential learning setting): the process requires to include a new row and a new column in the Gram matrix and to compute the kernel similarity for an additional point every time we include a new point in the training set. The process is similar to the one use for recursive least square applied to the Gram matrix
+    \end{itemize}
